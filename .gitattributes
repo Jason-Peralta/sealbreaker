@@ -1,0 +1,10 @@
+# Normalise line endings; generated JSON always comes out with LF.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.jar binary
+*.png binary
+*.ogg binary
+*.nbt binary
+*.bbmodel text eol=lf
+src/generated/**/.cache/* text eol=lf
+src/generated/**/*.json text eol=lf

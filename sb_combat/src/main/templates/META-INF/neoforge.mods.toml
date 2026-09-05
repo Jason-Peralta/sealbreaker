@@ -1,0 +1,33 @@
+# Mod metadata. Dollar-brace placeholders are expanded by the generateModMetadata task from gradle.properties.
+license="${mod_license}"
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+authors="Sealbreaker team"
+description='''
+Combat core of the Sealbreaker modpack: swings with wind-up, active and recovery windows, weapon-shaped
+hit tests, movesets, crit rolls and the player animation layer.
+'''
+
+[[dependencies.${mod_id}]]
+    modId="neoforge"
+    type="required"
+    versionRange="[${neo_version},)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="minecraft"
+    type="required"
+    versionRange="${minecraft_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="sb_core"
+    type="required"
+    versionRange="[${mod_version},)"
+    ordering="AFTER"
+    side="BOTH"

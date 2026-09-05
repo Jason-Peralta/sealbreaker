@@ -1,0 +1,47 @@
+{
+  "combo_window_ticks": 12,
+  "idle": "sb_combat:sword_idle",
+  "tap": [
+    {
+      "shape": "sweep",
+      "direction": "left_to_right",
+      "animation": "sb_combat:sword_sweep_ltr",
+      "reach": 3.0,
+      "arc_degrees": 150.0,
+      "vertical_reach": 2.0,
+      "windup_ticks": 5,
+      "active_ticks": 2,
+      "recovery_ticks": 4,
+      "damage_multiplier": 0.7,
+      "knockback": 0.3,
+      "hitstop_ticks": 2
+    },
+    {
+      "shape": "sweep",
+      "direction": "right_to_left",
+      "animation": "sb_combat:sword_sweep_rtl",
+      "reach": 3.0,
+      "arc_degrees": 150.0,
+      "vertical_reach": 2.0,
+      "windup_ticks": 5,
+      "active_ticks": 2,
+      "recovery_ticks": 4,
+      "damage_multiplier": 0.7,
+      "knockback": 0.3,
+      "hitstop_ticks": 2
+    },
+    {
+      "shape": "thrust",
+      "animation": "sb_combat:sword_thrust",
+      "reach": 3.4,
+      "arc_degrees": 30.0,
+      "vertical_reach": 1.5,
+      "windup_ticks": 8,
+      "active_ticks": 3,
+      "recovery_ticks": 7,
+      "damage_multiplier": 1.4,
+      "knockback": 0.7,
+      "hitstop_ticks": 3
+    }
+  ]
+}

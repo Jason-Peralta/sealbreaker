@@ -1,0 +1,15 @@
+// Root build. Shared configuration only; every mod lives in its own subproject (sb_*).
+// Versions are declared once in gradle.properties.
+
+tasks.named('wrapper', Wrapper).configure {
+    distributionType = Wrapper.DistributionType.BIN
+}
+
+subprojects {
+    // Applied to every sb_* module. Keep this block small: mod-specific configuration
+    // belongs in the module's own build.gradle, and once three or more modules share
+    // real logic it moves into a convention plugin under buildSrc/.
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+    }
+}

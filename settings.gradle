@@ -1,0 +1,17 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    // Lets Gradle download the exact JDK the toolchain asks for (Java 25 for Minecraft 26.2).
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = 'sealbreaker'
+
+// One Gradle subproject per mod. Add the rest here as they are created (see docs/03-roadmap.md, section 3):
+//   sb_gear, sb_bosses, sb_world, sb_realms, sb_hub, sb_blocks
+include 'sb_core'
+include 'sb_combat'

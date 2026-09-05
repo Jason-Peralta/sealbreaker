@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:function",
+  "function": "sb_core:hello_world",
+  "environment": "minecraft:default",
+  "structure": "minecraft:empty",
+  "max_ticks": 20,
+  "setup_ticks": 1,
+  "required": true
+}

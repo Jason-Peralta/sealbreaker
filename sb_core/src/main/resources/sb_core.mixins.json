@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.sealbreaker.core.mixin",
+  "mixins": [],
+  "client": [
+    "client.HumanoidModelMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

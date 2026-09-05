@@ -1,0 +1,6 @@
+# 0015 — External mods are utilities only
+Date: 2026-09-05
+Status: accepted (refines 0010)
+Context: the user first considered dropping all external mods, then clarified: other mods are references only for gameplay, but genuinely useful utilities and libraries (a recipe viewer, an accessory-slot library, an animation library) should not be reinvented.
+Decision: the pack never depends on a third-party *gameplay or content* mod. Utility and library mods are allowed when they save reinventing a wheel, each recorded with a one-line entry in the decision log. Current list: JEI (recipe viewer, MIT), Curios (accessory slots, LGPL-3), GeckoLib (entity animation, MIT). Development-only tools that never ship in the pack (a profiler such as Spark, the Minecraft Development IDE plugin) are allowed without an entry. Client-side performance mods are not part of the pack unless measured performance demands it.
+Consequences: everything players experience as gameplay is ours; the accessory *effects*, boss *designs*, models and animations are ours even where Curios and GeckoLib provide the plumbing; each library keeps a narrow interface so it can be replaced if it stalls on a version bump; the Milestone 0 spikes stay as planned (S2 proves GeckoLib on 26.2; S1 decides between our own player animation layer and PlayerAnimator if it reaches 26.x).
