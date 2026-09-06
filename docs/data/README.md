@@ -14,4 +14,6 @@ One file per datapack registry we add. Each file: the JSON shape with every fiel
 
 Planned: `sb:accessory_combine`, `sb:armor_set`, `sb:realm`.
 
+Numbers that are not content live in [attributes_and_config.md](attributes_and_config.md): our attributes (class damage, crit) and the one config file (difficulty scalars, death rules, Seal mode).
+
 Core's own entries are written by datagen (`./gradlew :sb_core:runData`, `SbCoreEntries`) into `sb_core/src/generated/resources`, which is committed. Editing a number means editing datagen and rerunning it, never editing the generated JSON by hand.

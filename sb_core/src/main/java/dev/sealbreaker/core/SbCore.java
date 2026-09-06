@@ -1,8 +1,10 @@
 package dev.sealbreaker.core;
 
 import com.mojang.logging.LogUtils;
+import dev.sealbreaker.core.api.attribute.SbAttributes;
 import dev.sealbreaker.core.api.combat.WeaponArchetype;
 import dev.sealbreaker.core.api.component.SbDataComponents;
+import dev.sealbreaker.core.api.config.SbConfig;
 import dev.sealbreaker.core.api.damage.DamageClass;
 import dev.sealbreaker.core.api.progression.Seal;
 import dev.sealbreaker.core.api.progression.Tier;
@@ -36,6 +38,8 @@ public final class SbCore {
         modEventBus.addListener(this::registerDatapackRegistries);
         modEventBus.addListener(this::registerTooltipAppenders);
         SbDataComponents.register(modEventBus);
+        SbAttributes.register(modEventBus);
+        SbConfig.register(modContainer, modEventBus);
         NeoForge.EVENT_BUS.register(this);
         LOGGER.info("Sealbreaker core {} constructed", modContainer.getModInfo().getVersion());
     }
