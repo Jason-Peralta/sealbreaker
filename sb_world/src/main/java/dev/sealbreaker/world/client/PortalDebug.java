@@ -1,9 +1,9 @@
 package dev.sealbreaker.world.client;
 
+import dev.sealbreaker.core.client.dev.DevHarness;
 import dev.sealbreaker.world.SbWorld;
 import dev.sealbreaker.world.block.SpikePortalBlock;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.Screenshot;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.core.BlockPos;
@@ -14,7 +14,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.clock.ServerClockManager;
 import net.minecraft.world.clock.WorldClock;
-import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.client.event.ClientChatReceivedEvent;
 
@@ -34,8 +33,6 @@ import java.util.Locale;
  */
 public final class PortalDebug {
     public static final int PORT = 25585;
-    private static final String CAPTURE = "sb:capture ";
-    private static final String QUIT = "sb:quit";
     private static final Identifier REALM_CLOCK = Identifier.fromNamespaceAndPath(SbWorld.MOD_ID, "spike_realm");
     private static final Identifier OVERWORLD_CLOCK = Identifier.withDefaultNamespace("overworld");
 
@@ -73,8 +70,8 @@ public final class PortalDebug {
         }
         LocalPlayer player = minecraft.player;
         if (player == null || minecraft.level == null) {
-            if (step == Step.CREATE && DevWorlds.readyToCreate(minecraft)) {
-                DevWorlds.createFresh(minecraft, "Spike S3 seed " + seed(), seed());
+            if (step == Step.CREATE && DevHarness.readyToCreate(minecraft)) {
+                DevHarness.createFresh(minecraft, "Spike S3 seed " + seed(), seed());
                 advance(Step.PUBLISH);
             }
             return;
@@ -89,10 +86,7 @@ public final class PortalDebug {
                 if (ticksInStep < 40) {
                     return;
                 }
-                boolean published = server.publishServer(MinecraftServer.MultiplayerScope.LAN, GameType.CREATIVE, true, PORT);
-                // Dev clients are offline accounts; a LAN world verifies sessions unless told otherwise.
-                server.setUsesAuthentication(false);
-                SbWorld.LOGGER.info("Portal debug: LAN {} on port {}, authentication off; waiting for the guest", published ? "published" : "NOT published", PORT);
+                DevHarness.publishLan(server, PORT);
                 advance(Step.WAIT_GUEST);
             }
             case WAIT_GUEST -> {
@@ -103,26 +97,26 @@ public final class PortalDebug {
             }
             case SETUP -> {
                 // Everything on the ground (not on a canopy): the portal three blocks east of the player, the guest six south of it.
-                BlockPos feet = ground(minecraft, player.blockPosition());
-                portal = ground(minecraft, feet.east(3));
-                BlockPos guest = ground(minecraft, portal.south(6));
+                BlockPos feet = DevHarness.ground(minecraft, player.blockPosition());
+                portal = DevHarness.ground(minecraft, feet.east(3));
+                BlockPos guest = DevHarness.ground(minecraft, portal.south(6));
                 player.connection.sendCommand("time set noon");
                 player.connection.sendCommand("weather clear");
                 for (BlockPos column : new BlockPos[]{feet, portal, guest}) {
                     player.connection.sendCommand(String.format(Locale.ROOT, "fill %d %d %d %d %d %d minecraft:air", column.getX(), column.getY(), column.getZ(), column.getX(), column.getY() + 2, column.getZ()));
                 }
                 player.connection.sendCommand(String.format(Locale.ROOT, "setblock %d %d %d sb_world:spike_portal", portal.getX(), portal.getY(), portal.getZ()));
-                player.connection.sendCommand("summon minecraft:pig " + centre(portal.south()) + " {NoAI:1b}");
-                player.connection.sendCommand("tp @s " + centre(feet) + " facing " + centreLook(portal));
-                player.connection.sendCommand("tp Dev2 " + centre(guest) + " facing " + centreLook(portal));
+                player.connection.sendCommand("summon minecraft:pig " + DevHarness.centre(portal.south()) + " {NoAI:1b}");
+                player.connection.sendCommand("tp @s " + DevHarness.centre(feet) + " facing " + DevHarness.centreLook(portal));
+                player.connection.sendCommand("tp Dev2 " + DevHarness.centre(guest) + " facing " + DevHarness.centreLook(portal));
                 advance(Step.BEFORE);
             }
             case BEFORE -> {
                 if (ticksInStep == 60) {
-                    capture(minecraft, player, "before");
+                    DevHarness.capture(minecraft, player, "s3_host", "before");
                 } else if (ticksInStep == 70) {
                     server.execute(() -> clocksBefore = readClocks(server));
-                    player.connection.sendCommand("tp @s " + centre(portal));
+                    player.connection.sendCommand("tp @s " + DevHarness.centre(portal));
                     advance(Step.ENTER);
                 }
             }
@@ -139,12 +133,12 @@ public final class PortalDebug {
             case IN_REALM -> {
                 if (ticksInStep == 40) {
                     // Vanilla keeps refreshing the cooldown while an entity stands in a portal, so step out first.
-                    player.connection.sendCommand("tp @s " + centre(arrival.west(3)) + " facing " + centreLook(arrival));
+                    player.connection.sendCommand("tp @s " + DevHarness.centre(arrival.west(3)) + " facing " + DevHarness.centreLook(arrival));
                 } else if (ticksInStep == 100) {
-                    capture(minecraft, player, "realm");
+                    DevHarness.capture(minecraft, player, "s3_host", "realm");
                 } else if (ticksInStep == 110) {
                     server.execute(() -> clocksAfter = readClocks(server));
-                    player.connection.sendCommand("tp @s " + centre(arrival));
+                    player.connection.sendCommand("tp @s " + DevHarness.centre(arrival));
                     advance(Step.RETURNING);
                 }
             }
@@ -159,9 +153,9 @@ public final class PortalDebug {
             }
             case AFTER -> {
                 if (ticksInStep == 60) {
-                    player.connection.sendCommand("tp @s " + centre(portal.west(3)) + " facing " + centreLook(portal));
+                    player.connection.sendCommand("tp @s " + DevHarness.centre(portal.west(3)) + " facing " + DevHarness.centreLook(portal));
                 } else if (ticksInStep == 100) {
-                    capture(minecraft, player, "after");
+                    DevHarness.capture(minecraft, player, "s3_host", "after");
                     long[] before = clocksBefore;
                     long[] after = clocksAfter;
                     if (before != null && after != null) {
@@ -173,7 +167,7 @@ public final class PortalDebug {
             }
             case QUIT -> {
                 if (ticksInStep == 1) {
-                    player.connection.sendCommand("say " + QUIT);
+                    player.connection.sendCommand("say " + DevHarness.QUIT);
                 } else if (ticksInStep == 40) {
                     SbWorld.LOGGER.info("Portal debug: done, quitting");
                     advance(Step.DONE);
@@ -185,29 +179,9 @@ public final class PortalDebug {
         }
     }
 
-    /** Block-centre coordinates as command text; an integer plus ".5" is wrong for negative coordinates (block -2 is centred on -1.5). */
-    private static String centre(BlockPos pos) {
-        return String.format(Locale.ROOT, "%.1f %d %.1f", pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
-    }
-
-    private static String centreLook(BlockPos pos) {
-        return String.format(Locale.ROOT, "%.1f %.1f %.1f", pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
-    }
-
-    /** The first air block above solid ground (leaves do not count) in the column of {@code pos}. */
-    private static BlockPos ground(Minecraft minecraft, BlockPos pos) {
-        return new BlockPos(pos.getX(), minecraft.level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, pos.getX(), pos.getZ()), pos.getZ());
-    }
-
     private static void advance(Step next) {
         step = next;
         ticksInStep = 0;
-    }
-
-    private static void capture(Minecraft minecraft, LocalPlayer player, String name) {
-        Screenshot.grab(minecraft.gameDirectory, "s3_host_" + name + ".png", minecraft.gameRenderer.mainRenderTarget(), 1, c -> {
-        });
-        player.connection.sendCommand("say " + CAPTURE + name);
     }
 
     /** Server thread: the overworld's and the realm's clock readings, to show they run apart. */
@@ -222,20 +196,8 @@ public final class PortalDebug {
 
     /** Guest side: the host announces capture points in chat. */
     public static void onChat(ClientChatReceivedEvent event) {
-        if (isHost()) {
-            return;
-        }
-        String text = event.getMessage().getString();
-        Minecraft minecraft = Minecraft.getInstance();
-        int at = text.indexOf(CAPTURE);
-        if (at >= 0) {
-            String name = text.substring(at + CAPTURE.length()).trim();
-            SbWorld.LOGGER.info("Portal debug guest: capturing '{}'", name);
-            Screenshot.grab(minecraft.gameDirectory, "s3_guest_" + name + ".png", minecraft.gameRenderer.mainRenderTarget(), 1, c -> {
-            });
-        } else if (text.contains(QUIT)) {
-            SbWorld.LOGGER.info("Portal debug guest: done, quitting");
-            minecraft.stop();
+        if (!isHost()) {
+            DevHarness.onGuestChat(event, "s3_guest");
         }
     }
 

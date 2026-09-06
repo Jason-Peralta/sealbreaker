@@ -1,0 +1,44 @@
+plugins {
+    id 'sealbreaker.mod'
+}
+
+// Bosses read combat rules and gear drops later (PRD section 6.2); the spike needs only core.
+sealbreakerMod.dependsOnModules ':sb_core'
+
+repositories {
+    // GeckoLib (decision 0010, 0020): resolved from the Modrinth Maven by version id, since version numbers repeat across loaders.
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = 'Modrinth'
+                url = 'https://api.modrinth.com/maven'
+            }
+        }
+        filter {
+            includeGroup 'maven.modrinth'
+        }
+    }
+}
+
+dependencies {
+    // GeckoLib 5.5.5 for NeoForge 26.2 (Modrinth version fTK5ltWI). Ships as its own mod in the pack; here it is on the classpath.
+    implementation "maven.modrinth:geckolib:${geckolib_version_id}"
+}
+
+neoForge.runs {
+    // Boss animation captures, two clients on one machine: the host creates a world, opens it to LAN, summons the
+    // spike dummy and triggers its attack; both clients screenshot the same ticks (see BossDebug). Dev only.
+    clientBoss {
+        client()
+        loadedMods.addAll(project.provider { sealbreakerMod.loadedMods })
+        programArguments.addAll '--width', '1280', '--height', '720'
+        systemProperty 'sb.bossdebug', 'host:' + (project.findProperty('sb.bossseed') ?: '4') + (project.hasProperty('sb.bosssolo') ? ':solo' : '')
+    }
+    clientBossGuest {
+        client()
+        loadedMods.addAll(project.provider { sealbreakerMod.loadedMods })
+        gameDirectory = project.file('run/client2')
+        programArguments.addAll '--username', 'Dev2', '--quickPlayMultiplayer', '127.0.0.1:25586', '--width', '1280', '--height', '720'
+        systemProperty 'sb.bossdebug', 'guest'
+    }
+}

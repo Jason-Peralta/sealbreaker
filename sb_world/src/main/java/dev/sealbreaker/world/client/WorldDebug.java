@@ -1,6 +1,7 @@
 package dev.sealbreaker.world.client;
 
 import com.mojang.datafixers.util.Pair;
+import dev.sealbreaker.core.client.dev.DevHarness;
 import dev.sealbreaker.world.SbWorld;
 import dev.sealbreaker.world.block.SbWorldBlocks;
 import net.minecraft.client.Minecraft;
@@ -62,9 +63,9 @@ public final class WorldDebug {
         }
         LocalPlayer player = minecraft.player;
         if (player == null || minecraft.level == null) {
-            if (!creating && DevWorlds.readyToCreate(minecraft)) {
+            if (!creating && DevHarness.readyToCreate(minecraft)) {
                 creating = true;
-                DevWorlds.createFresh(minecraft, "Spike S5 seed " + seed(), seed());
+                DevHarness.createFresh(minecraft, "Spike S5 seed " + seed(), seed());
             }
             return;
         }

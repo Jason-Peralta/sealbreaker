@@ -75,5 +75,5 @@ Consequences: <what this makes easier, harder, or forbidden>
 
 ## Things a future session must not assume
 - That Mojang mappings/Parchment/Yarn matter: 26.x is unobfuscated; the vanilla source in the IDE is the reference.
-- That the vanilla `Portal` interface, GeckoLib on 26.2 or PlayerAnimator on 26.x behave as the research doc expects: each is a Milestone 0 spike with a write-up in `docs/spikes/`.
+- That the vanilla `Portal` interface, GeckoLib on 26.2 or PlayerAnimator on 26.x behave as the research doc expects without reading the spike write-ups in `docs/spikes/` (all five answered 5 Sep 2026: Portal and GeckoLib 5.5.5 work as hoped; PlayerAnimator is not used, our own animation layer is).
 - That third-party content mods are available: they are reference material only (licences in `docs/01-research.md` section 5).

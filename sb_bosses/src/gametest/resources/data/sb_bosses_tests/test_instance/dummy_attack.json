@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:function",
+  "function": "sb_bosses_tests:dummy_attack",
+  "environment": "minecraft:default",
+  "structure": "sb_core_tests:arena",
+  "max_ticks": 60,
+  "setup_ticks": 1,
+  "required": true
+}

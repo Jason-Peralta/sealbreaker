@@ -150,6 +150,9 @@ neoForge {
 
 configurations {
     runtimeClasspath.extendsFrom localRuntime
+    // Game tests compile and run against everything the module itself uses (libraries such as GeckoLib included).
+    gametestImplementation.extendsFrom implementation
+    gametestRuntimeOnly.extendsFrom runtimeOnly
 }
 
 dependencies {

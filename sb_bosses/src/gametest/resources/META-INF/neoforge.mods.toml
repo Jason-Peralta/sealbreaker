@@ -1,0 +1,15 @@
+# A test-only mod: loaded by the gameTestServer run alone (see build.gradle), never shipped.
+license="MIT"
+
+[[mods]]
+modId="sb_bosses_tests"
+version="0.0.1"
+displayName="Sealbreaker Bosses game tests"
+description='''Game test functions and instances for sb_bosses.'''
+
+[[dependencies.sb_bosses_tests]]
+    modId="sb_bosses"
+    type="required"
+    versionRange="[0,)"
+    ordering="AFTER"
+    side="BOTH"
