@@ -14,4 +14,19 @@ neoForge.runs {
         programArguments.addAll '--width', '1280', '--height', '720'
         systemProperty 'sb.worlddebug', project.findProperty('sb.worlddebug') ?: '1'
     }
+    // Portal captures, two clients on one machine: the host creates a world, opens it to LAN and drives the test;
+    // start it first, then the guest, which quick-plays to the LAN address (see PortalDebug). Dev only.
+    clientPortal {
+        client()
+        loadedMods.addAll(project.provider { sealbreakerMod.loadedMods })
+        programArguments.addAll '--width', '1280', '--height', '720'
+        systemProperty 'sb.portaldebug', 'host:' + (project.findProperty('sb.portalseed') ?: '3') + (project.hasProperty('sb.portalsolo') ? ':solo' : '')
+    }
+    clientPortalGuest {
+        client()
+        loadedMods.addAll(project.provider { sealbreakerMod.loadedMods })
+        gameDirectory = project.file('run/client2')
+        programArguments.addAll '--username', 'Dev2', '--quickPlayMultiplayer', '127.0.0.1:25585', '--width', '1280', '--height', '720'
+        systemProperty 'sb.portaldebug', 'guest'
+    }
 }

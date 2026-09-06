@@ -5,7 +5,6 @@ import dev.sealbreaker.world.SbWorld;
 import dev.sealbreaker.world.block.SbWorldBlocks;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
-import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.core.BlockPos;
@@ -17,15 +16,10 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.GameType;
-import net.minecraft.world.level.LevelSettings;
-import net.minecraft.world.level.WorldDataConfiguration;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.levelgen.WorldOptions;
-import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
@@ -43,7 +37,6 @@ public final class WorldDebug {
     private static final int SEARCH_RADIUS_CHUNKS = 64;
     private static final int SETTLE_TICKS = 100;
 
-    private static int ticksOnMenus;
     private static boolean creating;
     private static boolean searching;
     private static volatile BlockPos found;
@@ -69,11 +62,9 @@ public final class WorldDebug {
         }
         LocalPlayer player = minecraft.player;
         if (player == null || minecraft.level == null) {
-            // The title screen, or whatever first-launch screen sits in front of it on a fresh run directory.
-            ticksOnMenus++;
-            if (!creating && (minecraft.gui.screen() instanceof TitleScreen || ticksOnMenus > 100)) {
+            if (!creating && DevWorlds.readyToCreate(minecraft)) {
                 creating = true;
-                createWorld(minecraft, seed());
+                DevWorlds.createFresh(minecraft, "Spike S5 seed " + seed(), seed());
             }
             return;
         }
@@ -120,22 +111,14 @@ public final class WorldDebug {
             // Stand in the corridor, four blocks in front of the door, looking straight at it; the corridor is unlit.
             BlockPos from = at.relative(doorFacing, 4);
             player.connection.sendCommand("effect give @s minecraft:night_vision 1000 0 true");
-            player.connection.sendCommand(String.format(Locale.ROOT, "tp @s %d.5 %d.0 %d.5 %.1f 0.0",
-                    from.getX(), from.getY(), from.getZ(), doorFacing.getOpposite().toYRot()));
+            player.connection.sendCommand(String.format(Locale.ROOT, "tp @s %.1f %d %.1f %.1f 0.0",
+                    from.getX() + 0.5, from.getY(), from.getZ() + 0.5, doorFacing.getOpposite().toYRot()));
         } else if (ticksSinceTeleport == SETTLE_TICKS * 2) {
             Screenshot.grab(minecraft.gameDirectory, String.format(Locale.ROOT, "s5_seed%d_door.png", seed()), minecraft.gameRenderer.mainRenderTarget(), 1, c -> {
             });
         } else if (ticksSinceTeleport == SETTLE_TICKS * 2 + 5) {
             finish(minecraft);
         }
-    }
-
-    private static void createWorld(Minecraft minecraft, long seed) {
-        String name = "Spike S5 seed " + seed;
-        LevelSettings settings = new LevelSettings(name, GameType.CREATIVE, LevelSettings.DifficultySettings.DEFAULT, true, WorldDataConfiguration.DEFAULT);
-        WorldOptions options = new WorldOptions(seed, true, false);
-        SbWorld.LOGGER.info("World debug: creating world '{}'", name);
-        minecraft.createWorldOpenFlows().createFreshLevel(name, settings, options, WorldPresets::createNormalWorldDimensions, minecraft.gui.screen());
     }
 
     /** Server thread: the nearest start of our structure, and its bounding box once its chunk is loaded. */

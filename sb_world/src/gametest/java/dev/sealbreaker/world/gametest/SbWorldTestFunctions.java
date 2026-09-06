@@ -4,6 +4,7 @@ import dev.sealbreaker.world.SbWorld;
 import dev.sealbreaker.world.block.LockedDoorBlock;
 import dev.sealbreaker.world.block.LockedDoorBlockEntity;
 import dev.sealbreaker.world.block.SbWorldBlocks;
+import dev.sealbreaker.world.block.SpikePortalBlock;
 import dev.sealbreaker.world.item.SbWorldItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -27,6 +28,11 @@ import net.minecraft.world.level.levelgen.structure.pools.JigsawPlacement;
 import net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.minecraft.world.clock.WorldClock;
+import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.timeline.Timeline;
+import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.animal.pig.Pig;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -49,6 +55,41 @@ public final class SbWorldTestFunctions {
     /** The real jigsaw pipeline assembles entrance, corridor and room, runs the processor list, and keeps the door's key. */
     public static final DeferredHolder<Consumer<GameTestHelper>, Consumer<GameTestHelper>> JIGSAW_ASSEMBLY =
             TEST_FUNCTIONS.register("jigsaw_assembly", () -> SbWorldTestFunctions::jigsawAssembly);
+
+    /**
+     * The realm's data loads: its dimension type points at its own clock and timeline set, the timeline has a 12000-tick
+     * day. The realm itself cannot exist here: the game test server bakes no datapack dimensions, so the portal
+     * must report the missing level instead of teleporting or crashing.
+     */
+    public static final DeferredHolder<Consumer<GameTestHelper>, Consumer<GameTestHelper>> REALM_DATA =
+            TEST_FUNCTIONS.register("realm_data", () -> SbWorldTestFunctions::realmData);
+
+    private static void realmData(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        Identifier realm = Identifier.fromNamespaceAndPath(SbWorld.MOD_ID, "spike_realm");
+        Holder<DimensionType> type = level.registryAccess().lookupOrThrow(Registries.DIMENSION_TYPE)
+                .get(ResourceKey.create(Registries.DIMENSION_TYPE, realm)).orElse(null);
+        helper.assertTrue(type != null, "the sb_world:spike_realm dimension type must load from data");
+        Holder<WorldClock> clock = level.registryAccess().lookupOrThrow(Registries.WORLD_CLOCK)
+                .get(ResourceKey.create(Registries.WORLD_CLOCK, realm)).orElse(null);
+        helper.assertTrue(clock != null, "the sb_world:spike_realm world clock must load from data");
+        helper.assertTrue(type.value().defaultClock().map(clock::equals).orElse(false), "the realm must run on its own clock");
+        Holder<Timeline> day = level.registryAccess().lookupOrThrow(Registries.TIMELINE)
+                .get(ResourceKey.create(Registries.TIMELINE, Identifier.fromNamespaceAndPath(SbWorld.MOD_ID, "spike_realm_day"))).orElse(null);
+        helper.assertTrue(day != null, "the sb_world:spike_realm_day timeline must load from data");
+        helper.assertTrue(day.value().clock().equals(clock) && day.value().periodTicks().orElse(0) == 12000,
+                "the realm's day runs on the realm's clock with a 12000-tick period");
+        helper.assertTrue(type.value().timelines().contains(day), "the dimension type must list the realm's day timeline");
+        helper.assertTrue(level.getServer().getLevel(SpikePortalBlock.REALM) == null,
+                "the game test server bakes no datapack dimensions; if this ever changes, extend this test to a real round trip");
+
+        helper.setBlock(new BlockPos(7, 1, 7), SbWorldBlocks.SPIKE_PORTAL.get());
+        Pig pig = helper.spawn(EntityTypes.PIG, new BlockPos(7, 1, 7));
+        helper.runAfterDelay(40, () -> {
+            helper.assertTrue(pig.isAlive() && pig.level() == level, "without the realm the portal must leave the pig where it is");
+            helper.succeed();
+        });
+    }
 
     private static void lockedDoorTemplate(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();

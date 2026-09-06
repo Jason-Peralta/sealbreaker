@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:function",
+  "function": "sb_world_tests:realm_data",
+  "environment": "minecraft:default",
+  "structure": "sb_core_tests:arena",
+  "max_ticks": 100,
+  "setup_ticks": 1,
+  "required": true
+}

@@ -334,7 +334,7 @@ Design rules for movesets: at most four moves per archetype; no move takes contr
 | Return path | The gate is two-way; the recall item works | A fall or exit hazard returns you to the overworld with damage, not death; the recall item works |
 | Time | Own world clock (26.1) | Own world clock with a hazard timeline |
 
-**Implementation.** JSON dimension + dimension type + noise settings + density functions + biomes + placed features, prototyped in Misode's generators, then owned by datagen. Environment attributes and world clocks (26.1) handle light, fog, time and hazard timelines. Java: gate blocks using the vanilla `Portal` interface and teleport transitions, dimension special effects (sky, fog colour) via the NeoForge client event, and any realm-specific status effect.
+**Implementation.** JSON dimension + dimension type + noise settings + density functions + biomes + placed features, prototyped in Misode's generators, then owned by datagen. Environment attributes and world clocks (26.1) handle light, fog, time and hazard timelines. Java: gate blocks using the vanilla `Portal` interface and teleport transitions (confirmed by spike S3, decision 0019; sky and fog colours are dimension-type attributes, the NeoForge client event is only for a custom skybox), and any realm-specific status effect.
 
 **Travel rules** (merged): a gate check runs on the *travelling* player at the actual transition, including mounts and passengers, so nobody bypasses a gate by following a friend; a denied player stays safe on the source side with a one-line reason; **return travel is always allowed**, and a lost or revoked flag can never strand a player in a realm or the Nether.
 

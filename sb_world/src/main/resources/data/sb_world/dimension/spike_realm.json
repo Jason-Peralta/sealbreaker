@@ -1,0 +1,11 @@
+{
+  "type": "sb_world:spike_realm",
+  "generator": {
+    "type": "minecraft:noise",
+    "biome_source": {
+      "type": "minecraft:fixed",
+      "biome": "minecraft:cherry_grove"
+    },
+    "settings": "minecraft:overworld"
+  }
+}

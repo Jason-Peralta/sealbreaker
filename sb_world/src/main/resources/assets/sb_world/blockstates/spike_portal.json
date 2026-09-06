@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "sb_world:block/spike_portal"
+    }
+  }
+}
