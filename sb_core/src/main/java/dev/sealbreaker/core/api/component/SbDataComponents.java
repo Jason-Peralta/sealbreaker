@@ -22,6 +22,17 @@ public final class SbDataComponents {
                     .persistent(Identifier.CODEC)
                     .networkSynchronized(Identifier.STREAM_CODEC));
 
+    /**
+     * The reforge prefix on a weapon, armor piece or accessory (PRD 3.5): one per item, shown first in the name,
+     * one tooltip line, and a glint on {@link dev.sealbreaker.core.api.item.GearItem}s. Written by the reforge
+     * transaction and by loot tables ({@code set_components}); read by presentation and, later, by the modifier
+     * registry lookup that applies its attribute modifiers.
+     */
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<ReforgePrefix>> REFORGE_PREFIX =
+            COMPONENTS.registerComponentType("reforge_prefix", b -> b
+                    .persistent(ReforgePrefix.CODEC)
+                    .networkSynchronized(ReforgePrefix.STREAM_CODEC));
+
     public static void register(IEventBus modEventBus) {
         COMPONENTS.register(modEventBus);
     }

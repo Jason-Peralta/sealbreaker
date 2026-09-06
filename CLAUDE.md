@@ -23,6 +23,7 @@ This is *Sealbreaker* (working title): an original, Terraria-inspired high-fanta
 
 ```
 sb_core/  sb_combat/  sb_gear/  sb_bosses/  sb_world/  sb_realms/  sb_hub/  sb_blocks/   one Gradle subproject per mod
+buildSrc/                               the `sealbreaker.mod` convention plugin every module applies (three-line build.gradle per module)
 pack/                                   packwiz modpack (what players install)
 docs/01-research.md                     why 26.2 / NeoForge / the toolchain; reference mods and licences
 docs/02-prd.md                          vision, pillars, tiers, every core system, architecture, decisions

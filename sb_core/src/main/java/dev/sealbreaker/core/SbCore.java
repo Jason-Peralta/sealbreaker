@@ -10,6 +10,8 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.common.tooltip.TooltipAppender;
+import net.neoforged.neoforge.event.RegisterTooltipAppendersEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.registries.DataPackRegistryEvent;
 import org.slf4j.Logger;
@@ -27,6 +29,7 @@ public final class SbCore {
     public SbCore(IEventBus modEventBus, ModContainer modContainer) {
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerDatapackRegistries);
+        modEventBus.addListener(this::registerTooltipAppenders);
         SbDataComponents.register(modEventBus);
         NeoForge.EVENT_BUS.register(this);
         LOGGER.info("Sealbreaker core {} constructed", modContainer.getModInfo().getVersion());
@@ -39,6 +42,15 @@ public final class SbCore {
     /** Declares our datapack registries; the network codec makes entries available on clients too. */
     private void registerDatapackRegistries(DataPackRegistryEvent.NewRegistry event) {
         event.dataPackRegistry(SbRegistries.WEAPON_ARCHETYPE, WeaponArchetype.CODEC, WeaponArchetype.CODEC);
+    }
+
+    /**
+     * Our components describe their own tooltip lines ({@code TooltipProvider}); this places them. The reforge
+     * prefix line goes before every vanilla component line, right under the item's own text.
+     */
+    private void registerTooltipAppenders(RegisterTooltipAppendersEvent event) {
+        event.registerComponentAppenderBeforeAll(SbDataComponents.REFORGE_PREFIX,
+                TooltipAppender.createComponentAppender(SbDataComponents.REFORGE_PREFIX.get()));
     }
 
     @SubscribeEvent

@@ -1,0 +1,13 @@
+// Convention plugins shared by every sb_* module (see sealbreaker.mod.gradle). The ModDevGradle version is
+// pinned here once; modules apply 'sealbreaker.mod' without a version.
+plugins {
+    id 'groovy-gradle-plugin'
+}
+
+repositories {
+    gradlePluginPortal()
+}
+
+dependencies {
+    implementation 'net.neoforged.moddev:net.neoforged.moddev.gradle.plugin:2.0.146'
+}

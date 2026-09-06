@@ -1,0 +1,12 @@
+{
+  "sb_gear.name": "Sealbreaker Gear",
+  "commands.sb_gear.reforge.applied": "Reforged %2$s with the %1$s prefix",
+  "commands.sb_gear.reforge.cleared": "Cleared the reforge prefix from %s",
+  "commands.sb_gear.reforge.empty_hand": "Hold the item to reforge in your main hand",
+  "commands.sb_gear.reforge.not_living": "Only a living entity can hold an item to reforge",
+  "reforge.sb_gear.lucky": "Lucky",
+  "reforge.sb_gear.heavy": "Heavy",
+  "reforge.sb_gear.swift": "Swift",
+  "reforge.sb_gear.broad": "Broad",
+  "reforge.sb_gear.balanced": "Balanced"
+}

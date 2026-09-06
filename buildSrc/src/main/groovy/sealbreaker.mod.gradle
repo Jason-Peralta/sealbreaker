@@ -1,0 +1,187 @@
+// Convention plugin for one Sealbreaker module (a mod). Applies ModDevGradle with the shared layout:
+//   - version, group and archive name from gradle.properties (root: mod_version, mod_group_id; module: mod_id)
+//   - Java 25 toolchain, datagen output under src/generated/resources, mod metadata expanded from src/main/templates
+//   - a 'gametest' source set packaged as a test-only mod (<mod_id>_tests) that only runGameTestServer loads
+//   - run configurations: client, client2 (second player), server, gameTestServer, data
+//   - JUnit 5 through ModDevGradle's unit-test support
+// A module declares which other modules it compiles against and loads at runtime with
+//   sealbreakerMod.dependsOnModules ':sb_core', ':sb_combat'
+// and may add its own runs under neoForge.runs (see sb_combat's clientAnim).
+
+import net.neoforged.moddevgradle.dsl.ModModel
+
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev'
+    id 'idea'
+}
+
+def modId = project.property('mod_id') as String
+
+version = project.property('mod_version')
+group = project.property('mod_group_id')
+
+base {
+    archivesName = modId
+}
+
+// Mojang ships Java 25 to end users in 26.2, so mods target Java 25.
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+
+sourceSets.main.resources {
+    // Datagen output is committed and shipped.
+    srcDir('src/generated/resources')
+    // Development-only files never reach the jar.
+    exclude('**/*.bbmodel')
+    exclude('src/generated/**/.cache')
+}
+
+// Game tests live in their own source set as a tiny test-only mod that only the gameTestServer run loads;
+// the shipped jar never contains them.
+sourceSets {
+    gametest {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+
+/** The module's own mod models plus those of the modules it depends on, filled in by dependsOnModules. */
+class SealbreakerModExtension {
+    private final Project project
+    /** Mods every run of this module loads: itself and the modules it depends on. */
+    final List<ModModel> loadedMods = []
+    /** Test namespaces the game test server runs: this module's tests and its dependencies'. */
+    final List<String> testNamespaces = []
+
+    SealbreakerModExtension(Project project) {
+        this.project = project
+    }
+
+    /**
+     * Declares the sb_* modules this one depends on: compile against them, and load them (and their test mods)
+     * from their source sets in every run configuration. Dependencies only point toward sb_core.
+     */
+    void dependsOnModules(String... modulePaths) {
+        def neoForge = project.extensions.getByName('neoForge')
+        // A plain loop: Groovy closures cannot read a private field of the enclosing class.
+        for (String path : modulePaths) {
+            // The other module's source sets must exist before we reference them.
+            project.evaluationDependsOn(path)
+            def other = project.project(path)
+            def otherId = other.property('mod_id') as String
+            def otherSourceSets = other.extensions.getByType(SourceSetContainer)
+            project.dependencies.add('compileOnly', other)
+            project.dependencies.add('testCompileOnly', other)
+            project.dependencies.add('gametestCompileOnly', other)
+            def main = otherSourceSets.getByName('main')
+            def gametest = otherSourceSets.getByName('gametest')
+            loadedMods << neoForge.mods.create(otherId) { ModModel mod -> mod.sourceSet(main) }
+            neoForge.mods.create("${otherId}_tests") { ModModel mod -> mod.sourceSet(gametest) }
+            testNamespaces << "${otherId}_tests".toString()
+        }
+    }
+}
+
+def sealbreakerMod = extensions.create('sealbreakerMod', SealbreakerModExtension, project)
+
+neoForge {
+    version = project.property('neo_version')
+
+    mods {
+        "${modId}" {
+            sourceSet(sourceSets.main)
+        }
+        "${modId}_tests" {
+            sourceSet(sourceSets.gametest)
+        }
+    }
+    sealbreakerMod.loadedMods << mods."${modId}"
+    sealbreakerMod.testNamespaces << "${modId}_tests".toString()
+    addModdingDependenciesTo(sourceSets.gametest)
+
+    // The mod lists are read lazily so a module can declare its dependencies after the plugin is applied.
+    def loaded = project.provider { sealbreakerMod.loadedMods }
+    def namespaces = project.provider { sealbreakerMod.testNamespaces.join(',') }
+
+    runs {
+        client {
+            client()
+            loadedMods.addAll(loaded)
+        }
+        // A second client with its own username and folder, for two-player tests on one machine.
+        client2 {
+            client()
+            gameDirectory = project.file('run/client2')
+            programArguments.addAll '--username', 'Dev2'
+            loadedMods.addAll(loaded)
+        }
+        server {
+            server()
+            gameDirectory = project.file('run/server')
+            programArgument '--nogui'
+            loadedMods.addAll(loaded)
+        }
+        // Runs every game test of this module and its dependencies headlessly, then exits with the failure count.
+        gameTestServer {
+            type = 'gameTestServer'
+            systemProperties.put('neoforge.enabledGameTestNamespaces', namespaces)
+        }
+        data {
+            clientData()
+            programArguments.addAll '--mod', modId, '--all',
+                    '--output', file('src/generated/resources/').getAbsolutePath(),
+                    '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+        configureEach {
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            logLevel = org.slf4j.event.Level.DEBUG
+            // JetBrains Runtime only: hot-swap added/removed methods and fields while the game runs.
+            // Ignored (not fatal) on JDKs that do not know the flag.
+            jvmArgument '-XX:+IgnoreUnrecognizedVMOptions'
+            jvmArgument '-XX:+AllowEnhancedClassRedefinition'
+        }
+    }
+
+    unitTest {
+        enable()
+        testedMod = mods."${modId}"
+    }
+}
+
+configurations {
+    runtimeClasspath.extendsFrom localRuntime
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.13.4'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+var generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
+    var replaceProperties = [
+            minecraft_version      : project.property('minecraft_version'),
+            minecraft_version_range: project.property('minecraft_version_range'),
+            neo_version            : project.property('neo_version'),
+            mod_id                 : modId,
+            mod_name               : project.property('mod_name'),
+            mod_license            : project.property('mod_license'),
+            mod_version            : project.property('mod_version'),
+    ]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from 'src/main/templates'
+    into 'build/generated/sources/modMetadata'
+}
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}

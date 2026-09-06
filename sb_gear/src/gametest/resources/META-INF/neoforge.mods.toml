@@ -1,0 +1,15 @@
+# A test-only mod: loaded by the gameTestServer run alone (see build.gradle), never shipped.
+license="MIT"
+
+[[mods]]
+modId="sb_gear_tests"
+version="0.0.1"
+displayName="Sealbreaker Gear game tests"
+description='''Game test functions and instances for sb_gear.'''
+
+[[dependencies.sb_gear_tests]]
+    modId="sb_gear"
+    type="required"
+    versionRange="[0,)"
+    ordering="AFTER"
+    side="BOTH"

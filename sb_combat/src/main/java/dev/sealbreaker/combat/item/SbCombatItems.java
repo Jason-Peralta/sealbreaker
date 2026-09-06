@@ -2,9 +2,9 @@ package dev.sealbreaker.combat.item;
 
 import dev.sealbreaker.combat.SbCombat;
 import dev.sealbreaker.core.api.component.SbDataComponents;
+import dev.sealbreaker.core.api.item.GearItem;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.CreativeModeTabs;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ToolMaterial;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -19,7 +19,7 @@ public final class SbCombatItems {
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(SbCombat.MOD_ID);
 
     /** Iron-sword stats, our swing archetype. Spike only; replaced by the Tier 1 weapon table in Milestone 1. */
-    public static final DeferredItem<Item> SPIKE_SWORD = ITEMS.registerSimpleItem("spike_sword", props -> props
+    public static final DeferredItem<GearItem> SPIKE_SWORD = ITEMS.registerItem("spike_sword", GearItem::new, props -> props
             .sword(ToolMaterial.IRON, 3.0f, -2.4f)
             .component(SbDataComponents.ARCHETYPE.get(), Identifier.fromNamespaceAndPath(SbCombat.MOD_ID, "sword")));
 

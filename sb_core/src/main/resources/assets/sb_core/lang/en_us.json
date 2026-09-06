@@ -1,3 +1,5 @@
 {
-  "sb_core.name": "Sealbreaker Core"
+  "sb_core.name": "Sealbreaker Core",
+  "reforge.sb_core.named": "%s %s",
+  "reforge.sb_core.tooltip": "Reforge: %s"
 }

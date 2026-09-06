@@ -1,0 +1,17 @@
+plugins {
+    id 'sealbreaker.mod'
+}
+
+// Gear reads archetypes and class resources from combat, and everything from core (PRD section 6.2).
+sealbreakerMod.dependsOnModules ':sb_core', ':sb_combat'
+
+neoForge.runs {
+    // Item presentation captures: joins the "Anim Capture" save, gives and reforges the spike sword, screenshots
+    // the tooltip and the held item, then quits (see GearDebug). Dev only; the prefix id is overridable.
+    clientGear {
+        client()
+        loadedMods.addAll(project.provider { sealbreakerMod.loadedMods })
+        programArguments.addAll '--quickPlaySingleplayer', 'Anim Capture', '--width', '1280', '--height', '720'
+        systemProperty 'sb.geardebug', project.findProperty('sb.geardebug') ?: 'sb_gear:lucky'
+    }
+}
