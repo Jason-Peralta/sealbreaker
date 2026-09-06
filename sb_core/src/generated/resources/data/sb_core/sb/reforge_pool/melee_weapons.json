@@ -1,0 +1,9 @@
+{
+  "applies_to": "#sb_core:melee_weapons",
+  "entries": [
+    {
+      "modifier": "sb_core:lucky",
+      "weight": 10
+    }
+  ]
+}

@@ -3,6 +3,12 @@ package dev.sealbreaker.core;
 import com.mojang.logging.LogUtils;
 import dev.sealbreaker.core.api.combat.WeaponArchetype;
 import dev.sealbreaker.core.api.component.SbDataComponents;
+import dev.sealbreaker.core.api.damage.DamageClass;
+import dev.sealbreaker.core.api.progression.Seal;
+import dev.sealbreaker.core.api.progression.Tier;
+import dev.sealbreaker.core.api.rarity.Rarity;
+import dev.sealbreaker.core.api.reforge.ReforgeModifier;
+import dev.sealbreaker.core.api.reforge.ReforgePool;
 import dev.sealbreaker.core.api.registry.SbRegistries;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -17,9 +23,8 @@ import net.neoforged.neoforge.registries.DataPackRegistryEvent;
 import org.slf4j.Logger;
 
 /**
- * Entry point of the core module: shared registries, components and services; no content.
- * Milestone 0 scope: the build, the loader, both distributions, and the first datapack registry
- * ({@code sb:weapon_archetype}) used by the combat spike.
+ * Entry point of the core module: shared registries, components and services; no content. The datapack
+ * registries ({@code sb:*}, see {@link SbRegistries}) are declared here and documented in {@code docs/data/}.
  */
 @Mod(SbCore.MOD_ID)
 public final class SbCore {
@@ -39,9 +44,18 @@ public final class SbCore {
         LOGGER.info("Sealbreaker core: common setup complete");
     }
 
-    /** Declares our datapack registries; the network codec makes entries available on clients too. */
+    /**
+     * Declares our datapack registries; the network codec makes entries available on clients too. The records
+     * reference other registries by key, so one codec serves both the disk and the wire.
+     */
     private void registerDatapackRegistries(DataPackRegistryEvent.NewRegistry event) {
         event.dataPackRegistry(SbRegistries.WEAPON_ARCHETYPE, WeaponArchetype.CODEC, WeaponArchetype.CODEC);
+        event.dataPackRegistry(SbRegistries.DAMAGE_CLASS, DamageClass.CODEC, DamageClass.CODEC);
+        event.dataPackRegistry(SbRegistries.REFORGE_MODIFIER, ReforgeModifier.CODEC, ReforgeModifier.CODEC);
+        event.dataPackRegistry(SbRegistries.REFORGE_POOL, ReforgePool.CODEC, ReforgePool.CODEC);
+        event.dataPackRegistry(SbRegistries.RARITY, Rarity.CODEC, Rarity.CODEC);
+        event.dataPackRegistry(SbRegistries.SEAL, Seal.CODEC, Seal.CODEC);
+        event.dataPackRegistry(SbRegistries.TIER, Tier.CODEC, Tier.CODEC);
     }
 
     /**
