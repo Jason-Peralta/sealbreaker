@@ -30,11 +30,11 @@ Things a fresh machine may trip on:
 
 ## IDE and the edit loop
 
-IntelliJ IDEA 2026.x: open the root folder as a Gradle project and let it sync; ModDevGradle generates a run configuration per run (`sb_combat: runClient`, `runClientAnim`, ...). Settings that matter:
+IntelliJ IDEA 2026.x: open the root folder as a Gradle project and let it sync; ModDevGradle generates an Application run configuration per run (`sb_combat - Client`, `sb_combat - ClientAnim`, ...; each loads its module and the modules it depends on, so the sword is in `sb_combat - Client`, not `sb_core - Client`). Settings that matter:
 
 - **Project SDK:** any JDK 17+ for Gradle itself; the modules compile with the Java 25 toolchain Gradle downloads.
-- **Run JRE for the run configurations:** the bundled **JetBrains Runtime 25** (IntelliJ 2026.1 ships 25.0.2). The run configurations already carry `-XX:+IgnoreUnrecognizedVMOptions -XX:+AllowEnhancedClassRedefinition`; on JBR those flags enable hot-swapping added and removed methods and fields while the game runs, on any other JDK they are ignored.
-- **Code loop:** with the client running from the IDE, edit a Java file, `Build > Recompile` it; the debugger hot-swaps the class. Adding a method works on JBR; changing a class's shape beyond that needs a restart.
+- **Run JRE for the run configurations:** the bundled **JetBrains Runtime 25** (IntelliJ 2026.1 ships 25.0.2 under `C:\Program Files\JetBrains\IntelliJ IDEA 2026.1.1\jbr`): add it as an SDK and make it the project SDK, and every generated configuration runs on it. The run configurations already carry `-XX:+IgnoreUnrecognizedVMOptions -XX:+AllowEnhancedClassRedefinition` (through the `@build/moddev/<run>VmArgs.txt` argument file); on JBR those flags enable hot-swapping added and removed methods and fields while the game runs, on any other JDK they are ignored.
+- **Code loop** (confirmed 6 Sep 2026): start the generated `sb_combat - Client` configuration with **Debug** (hot swap needs the debugger), open the Java file in the editor, edit, press Ctrl+Shift+F9 (Recompile) with the editor focused, answer Reload. A new private method plus a new log line in `SwingService.hit` appeared on the next swing without a restart. Changing a class's shape beyond added methods and fields still needs a restart.
 - **Resource loop:** edit a JSON under `src/main/resources`, run `Build > Build Project` (that is `processResources`, which copies it to `build/resources/main`, where the running game reads resources from), then press F3+T in game. Verified without a person for the player animations: `./gradlew :sb_combat:runClientAnim -Psb.animdebug=reload` edits the sword animation's copy under `build/resources/main`, presses F3+T through `reloadResourcePacks` and logs `sword_sweep_ltr length before 0.55 after 0.95 (the reload picked up the edit)`. Data pack registries (`data/<ns>/sb/...`) reload with `/reload` instead.
 
 ## Capture runs (dev only)
@@ -47,7 +47,7 @@ One Gradle subproject per mod (`sb_core`, `sb_combat`, `sb_gear`, `sb_world`, `s
 
 ## Status
 
-Milestone 0 (environment and spikes): all five spikes answered (`docs/spikes/`), the build and the game tests pass from a fresh clone; remaining are the second machine, the CI workflow push (needs the `workflow` token scope), the packwiz pack and the hot-swap check by a person (`docs/03-roadmap.md`).
+Milestone 0 (environment and spikes): all five spikes answered (`docs/spikes/`), the build and the game tests pass from a fresh clone; the packwiz pack installs from a served URL and the IDE hot-swap loop is confirmed; remaining are the second machine, the CI workflow push (needs the `workflow` token scope) and the Prism/throwaway-server check (`docs/03-roadmap.md`).
 
 ## Licence
 
