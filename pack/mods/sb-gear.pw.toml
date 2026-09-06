@@ -1,0 +1,8 @@
+name = "sb_gear"
+filename = "sb_gear-0.0.1.jar"
+side = "both"
+
+[download]
+url = "https://github.com/Jason-Peralta/sealbreaker/releases/download/v0.0.1/sb_gear-0.0.1.jar"
+hash-format = "sha256"
+hash = "b22b4761be5250295ab17ff4a5437886fd2f7a4d32ef1947a97015e9f01b7c78"

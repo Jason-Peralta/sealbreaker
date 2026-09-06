@@ -1,0 +1,8 @@
+name = "sb_core"
+filename = "sb_core-0.0.1.jar"
+side = "both"
+
+[download]
+url = "https://github.com/Jason-Peralta/sealbreaker/releases/download/v0.0.1/sb_core-0.0.1.jar"
+hash-format = "sha256"
+hash = "ba643929299684d6221461f8fc6e241cec7cdfc0d373eba5153871ada3ce447b"

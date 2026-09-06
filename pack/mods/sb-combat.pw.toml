@@ -1,0 +1,8 @@
+name = "sb_combat"
+filename = "sb_combat-0.0.1.jar"
+side = "both"
+
+[download]
+url = "https://github.com/Jason-Peralta/sealbreaker/releases/download/v0.0.1/sb_combat-0.0.1.jar"
+hash-format = "sha256"
+hash = "65d08ee26703441a30a01b249a65b95aa3910c7ebc621c044b60f1454ecddeaa"

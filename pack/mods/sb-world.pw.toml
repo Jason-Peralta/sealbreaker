@@ -1,0 +1,8 @@
+name = "sb_world"
+filename = "sb_world-0.0.1.jar"
+side = "both"
+
+[download]
+url = "https://github.com/Jason-Peralta/sealbreaker/releases/download/v0.0.1/sb_world-0.0.1.jar"
+hash-format = "sha256"
+hash = "9444a4eacaf0d745e62229f1295c9f0a5fe71b833b082c88e483e0fbfaed0ea0"

@@ -1,0 +1,13 @@
+name = "Sealbreaker"
+author = "Sealbreaker team"
+version = "0.0.1"
+pack-format = "packwiz:1.1.0"
+
+[index]
+file = "index.toml"
+hash-format = "sha256"
+hash = "9f86f621b829658d30e585738b93514bd8652e884af703b938c2e05f3289d8ec"
+
+[versions]
+minecraft = "26.2"
+neoforge = "26.2.0.76"

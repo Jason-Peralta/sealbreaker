@@ -1,0 +1,41 @@
+hash-format = "sha256"
+
+[[files]]
+file = "mods/curios.pw.toml"
+hash = "c6c4602d97efc24e21e11122170ea3f168cf2636913a2183e24edcb40786fd63"
+metafile = true
+
+[[files]]
+file = "mods/geckolib.pw.toml"
+hash = "8ad89d647f4f4882ed87a67f77ffefda01ecdfbb102235e78fe0f59ad20ef8e2"
+metafile = true
+
+[[files]]
+file = "mods/jei.pw.toml"
+hash = "6a250b76bf1c0475230439cbc31c3649b0403e94e9c23df1de265195b71f26e9"
+metafile = true
+
+[[files]]
+file = "mods/sb-bosses.pw.toml"
+hash = "9ec466840280000a145163f00719630548b4c6cc034ba45fd33e1298f176b61c"
+metafile = true
+
+[[files]]
+file = "mods/sb-combat.pw.toml"
+hash = "3da9806aafe55fbd05a949c0a001a01cd444f2f75163cffab4152705a0f3ca46"
+metafile = true
+
+[[files]]
+file = "mods/sb-core.pw.toml"
+hash = "13856b9843ad886c9b8640b584bf6bb2943b9fc4fec160ca8ca4419d76dd5c2c"
+metafile = true
+
+[[files]]
+file = "mods/sb-gear.pw.toml"
+hash = "fd5b203169ee148c52837621487d525f43b78c79588db4a6e6c941263074ad2d"
+metafile = true
+
+[[files]]
+file = "mods/sb-world.pw.toml"
+hash = "d76bfe45fe06c2e09a7c3f6399c166e9b7aa5cfed88aa6742144c6dcb654f42d"
+metafile = true

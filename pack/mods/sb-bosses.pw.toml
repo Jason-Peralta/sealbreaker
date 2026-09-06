@@ -1,0 +1,8 @@
+name = "sb_bosses"
+filename = "sb_bosses-0.0.1.jar"
+side = "both"
+
+[download]
+url = "https://github.com/Jason-Peralta/sealbreaker/releases/download/v0.0.1/sb_bosses-0.0.1.jar"
+hash-format = "sha256"
+hash = "925eac58f23ac48b7cd6261a474fe41c541cec87c9b646ce7ce6e97797b31fdc"

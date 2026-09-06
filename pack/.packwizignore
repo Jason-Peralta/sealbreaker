@@ -1,0 +1,3 @@
+# Files under pack/ that are documentation or tooling, not part of what players install (gitignore syntax).
+README.md
+server/
