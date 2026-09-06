@@ -58,6 +58,14 @@ public final class AnimDebug {
     private static int comboTick = -1;
     private static boolean initialised;
     private static int settle;
+    private static boolean reload;
+    private static int reloadTicks;
+    private static float lengthBefore;
+    private static String originalJson;
+    private static java.nio.file.Path reloadedFile;
+    /** Both sweeps are 0.55 s long; the reload check stretches them and reads one back. */
+    private static final String LENGTH_BEFORE_TEXT = "\"animation_length\": 0.55";
+    private static final String LENGTH_AFTER_TEXT = "\"animation_length\": 0.95";
     private static int cursor = -1;
     private static int ticksOnFrame;
     /** The frame currently on screen; read by the render code. */
@@ -92,6 +100,10 @@ public final class AnimDebug {
         if (!initialised) {
             initialised = true;
             String spec = System.getProperty("sb.animdebug");
+            if (spec.equals("reload")) {
+                reload = true;
+                return;
+            }
             if (spec.startsWith("combo")) {
                 combo = true;
                 String view = spec.contains(":") ? spec.substring(spec.indexOf(':') + 1) : "fp";
@@ -112,6 +124,10 @@ public final class AnimDebug {
                 player.getInventory().setItem(0, sword);
             }
             SbCombat.LOGGER.info("Animation debug: {} frames queued", QUEUE.size());
+            return;
+        }
+        if (reload) {
+            tickReload(minecraft);
             return;
         }
         if (settle < SETTLE_TICKS) {
@@ -206,5 +222,45 @@ public final class AnimDebug {
     }
 
     private AnimDebug() {
+    }
+
+    /**
+     * {@code -Psb.animdebug=reload}: the resource-reload loop of ticket #4 without a person. Reads a move's length,
+     * edits the animation JSON where the run reads it from (the processResources output, which IntelliJ's Build
+     * refreshes from src), presses F3+T through {@code reloadResourcePacks}, reads the length again, restores the
+     * file and quits. The log line "reload: ... before X after Y" is the verdict.
+     */
+    private static void tickReload(Minecraft minecraft) {
+        Identifier id = Identifier.fromNamespaceAndPath(SbCombat.MOD_ID, "sword_sweep_ltr");
+        reloadTicks++;
+        try {
+            if (reloadTicks == 20) {
+                lengthBefore = PlayerAnimations.get(id).length();
+                reloadedFile = minecraft.gameDirectory.toPath().resolve("../build/resources/main/assets/sb_combat/sb_animations/player/sword.json").normalize();
+                originalJson = java.nio.file.Files.readString(reloadedFile);
+                String edited = originalJson.replace(LENGTH_BEFORE_TEXT, LENGTH_AFTER_TEXT);
+                if (edited.equals(originalJson)) {
+                    throw new IllegalStateException("the sweep's animation_length was not found where expected in " + reloadedFile);
+                }
+                java.nio.file.Files.writeString(reloadedFile, edited);
+                SbCombat.LOGGER.info("Animation debug: reload: edited {} and pressing F3+T", reloadedFile);
+                minecraft.reloadResourcePacks();
+            } else if (reloadTicks == 200) {
+                float after = PlayerAnimations.get(id).length();
+                java.nio.file.Files.writeString(reloadedFile, originalJson);
+                SbCombat.LOGGER.info("Animation debug: reload: sword_sweep_ltr length before {} after {} ({})", lengthBefore, after,
+                        after != lengthBefore ? "the reload picked up the edit" : "the reload did NOT pick up the edit");
+                minecraft.stop();
+            }
+        } catch (java.io.IOException | RuntimeException e) {
+            SbCombat.LOGGER.error("Animation debug: reload failed", e);
+            if (originalJson != null && reloadedFile != null) {
+                try {
+                    java.nio.file.Files.writeString(reloadedFile, originalJson);
+                } catch (java.io.IOException ignored) {
+                }
+            }
+            minecraft.stop();
+        }
     }
 }
