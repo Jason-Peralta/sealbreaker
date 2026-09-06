@@ -22,23 +22,42 @@ sourceSets.main.resources {
     exclude('src/generated/**/.cache')
 }
 
+// Game tests live in their own source set as a tiny test-only mod (sb_core_tests) that only the
+// gameTestServer run loads; the shipped jar never contains them.
+sourceSets {
+    gametest {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+
 neoForge {
     version = project.neo_version
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+        "${mod_id}_tests" {
+            sourceSet(sourceSets.gametest)
+        }
+    }
+    addModdingDependenciesTo(sourceSets.gametest)
 
     runs {
         client {
             client()
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            loadedMods = [mods."${mod_id}"]
         }
         server {
             server()
             programArgument '--nogui'
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            loadedMods = [mods."${mod_id}"]
         }
         // Runs every registered game test headlessly, then exits. Crashes if no tests exist yet.
         gameTestServer {
             type = 'gameTestServer'
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            systemProperty 'neoforge.enabledGameTestNamespaces', "${project.mod_id}_tests"
         }
         data {
             clientData()
@@ -52,11 +71,6 @@ neoForge {
         }
     }
 
-    mods {
-        "${mod_id}" {
-            sourceSet(sourceSets.main)
-        }
-    }
 
     // JUnit tests under src/test run inside a NeoForge bootstrap and may reference Minecraft classes.
     unitTest {

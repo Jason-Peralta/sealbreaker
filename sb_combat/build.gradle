@@ -22,19 +22,46 @@ sourceSets.main.resources {
     exclude('src/generated/**/.cache')
 }
 
+// Game tests live in their own source set as a tiny test-only mod (sb_combat_tests) that only the
+// gameTestServer run loads, together with sb_core's; the shipped jar never contains them.
+sourceSets {
+    gametest {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+
 neoForge {
     version = project.neo_version
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+        "${mod_id}_tests" {
+            sourceSet(sourceSets.gametest)
+        }
+        // Runs from this module load the core module too, straight from its sources.
+        'sb_core' {
+            sourceSet(project(':sb_core').sourceSets.main)
+        }
+        'sb_core_tests' {
+            sourceSet(project(':sb_core').sourceSets.gametest)
+        }
+    }
+    addModdingDependenciesTo(sourceSets.gametest)
 
     runs {
         client {
             client()
-            systemProperty 'neoforge.enabledGameTestNamespaces', "${project.mod_id},sb_core"
+            loadedMods = [mods."${mod_id}", mods.sb_core]
         }
         // Animation contact sheets: joins the "New World" save, screenshots every frame of the listed
         // animations from behind, from the front and in first person, then quits (see AnimDebug).
         // Override the list with -Psb.animdebug=... on the command line.
         clientAnim {
             client()
+            loadedMods = [mods."${mod_id}", mods.sb_core]
             programArguments.addAll '--quickPlaySingleplayer', 'Anim Capture', '--width', '1280', '--height', '720'
             systemProperty 'sb.animdebug', project.findProperty('sb.animdebug') ?: 'sb_combat:sword_sweep_ltr,sb_combat:sword_sweep_ltr_fp'
         }
@@ -43,17 +70,17 @@ neoForge {
             client()
             gameDirectory = project.file('run/client2')
             programArguments.addAll '--username', 'Dev2'
-            systemProperty 'neoforge.enabledGameTestNamespaces', "${project.mod_id},sb_core"
+            loadedMods = [mods."${mod_id}", mods.sb_core]
         }
         server {
             server()
             gameDirectory = project.file('run/server')
             programArgument '--nogui'
-            systemProperty 'neoforge.enabledGameTestNamespaces', "${project.mod_id},sb_core"
+            loadedMods = [mods."${mod_id}", mods.sb_core]
         }
         gameTestServer {
             type = 'gameTestServer'
-            systemProperty 'neoforge.enabledGameTestNamespaces', "${project.mod_id},sb_core"
+            systemProperty 'neoforge.enabledGameTestNamespaces', "${project.mod_id}_tests,sb_core_tests"
         }
         data {
             clientData()
@@ -71,15 +98,6 @@ neoForge {
         }
     }
 
-    mods {
-        "${mod_id}" {
-            sourceSet(sourceSets.main)
-        }
-        // Runs from this module load the core module too, straight from its sources.
-        'sb_core' {
-            sourceSet(project(':sb_core').sourceSets.main)
-        }
-    }
 
     unitTest {
         enable()
@@ -95,6 +113,7 @@ dependencies {
     // Compile against core; at runtime the run configurations load it as a mod from its source set.
     compileOnly project(':sb_core')
     testCompileOnly project(':sb_core')
+    gametestCompileOnly project(':sb_core')
     testImplementation 'org.junit.jupiter:junit-jupiter:5.13.4'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

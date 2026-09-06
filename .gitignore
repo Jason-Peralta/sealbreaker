@@ -45,3 +45,6 @@ crash-reports/
 
 ### packwiz (local state only; the pack itself is committed) ###
 pack/.packwiz/
+
+### Python tools ###
+__pycache__/

@@ -1,10 +1,9 @@
 {
   "type": "minecraft:function",
-  "function": "sb_combat:arc_targeting",
+  "function": "sb_combat_tests:arc_targeting",
   "environment": "minecraft:default",
-  "structure": "minecraft:empty",
+  "structure": "sb_core_tests:arena",
   "max_ticks": 40,
   "setup_ticks": 1,
-  "padding": 8,
   "required": true
 }

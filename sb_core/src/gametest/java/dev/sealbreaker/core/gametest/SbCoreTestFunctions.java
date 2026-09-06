@@ -1,4 +1,4 @@
-package dev.sealbreaker.core.test;
+package dev.sealbreaker.core.gametest;
 
 import dev.sealbreaker.core.SbCore;
 import net.minecraft.core.BlockPos;
@@ -13,14 +13,14 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import java.util.function.Consumer;
 
 /**
- * Game test functions. Since 1.21.5 game tests are data-driven: each test is a JSON file in
- * {@code data/sb_core/test_instance/} that names one of these functions, a test environment and a
- * structure template. Run them with {@code ./gradlew :sb_core:runGameTestServer} (headless, exit code =
- * number of failed required tests) or in-game with {@code /test runall}.
+ * Game test functions. Game tests are data-driven: each test is a JSON file in
+ * {@code data/sb_core_tests/test_instance/} that names one of these functions, a test environment and a
+ * structure template (the shared {@code sb_core_tests:arena}, a 16x9x16 stone floor with air above). Run them
+ * with {@code ./gradlew :sb_core:runGameTestServer} (headless, exit code = number of failed required tests).
  */
 public final class SbCoreTestFunctions {
     public static final DeferredRegister<Consumer<GameTestHelper>> TEST_FUNCTIONS =
-            DeferredRegister.create(BuiltInRegistries.TEST_FUNCTION, SbCore.MOD_ID);
+            DeferredRegister.create(BuiltInRegistries.TEST_FUNCTION, SbCoreTests.MOD_ID);
 
     /** Milestone 0 smoke test: the mod is loaded and the helper can place and see a block. */
     public static final DeferredHolder<Consumer<GameTestHelper>, Consumer<GameTestHelper>> HELLO_WORLD =

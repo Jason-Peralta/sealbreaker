@@ -4,7 +4,6 @@ import com.mojang.logging.LogUtils;
 import dev.sealbreaker.core.api.combat.WeaponArchetype;
 import dev.sealbreaker.core.api.component.SbDataComponents;
 import dev.sealbreaker.core.api.registry.SbRegistries;
-import dev.sealbreaker.core.test.SbCoreTestFunctions;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
@@ -29,7 +28,6 @@ public final class SbCore {
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerDatapackRegistries);
         SbDataComponents.register(modEventBus);
-        SbCoreTestFunctions.register(modEventBus);
         NeoForge.EVENT_BUS.register(this);
         LOGGER.info("Sealbreaker core {} constructed", modContainer.getModInfo().getVersion());
     }

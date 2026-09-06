@@ -1,0 +1,15 @@
+# A test-only mod: loaded by the gameTestServer run alone (see build.gradle), never shipped.
+license="MIT"
+
+[[mods]]
+modId="sb_combat_tests"
+version="0.0.1"
+displayName="Sealbreaker Combat game tests"
+description='''Game test functions and instances for sb_combat.'''
+
+[[dependencies.sb_combat_tests]]
+    modId="sb_combat"
+    type="required"
+    versionRange="[0,)"
+    ordering="AFTER"
+    side="BOTH"

@@ -3,7 +3,6 @@ package dev.sealbreaker.combat;
 import com.mojang.logging.LogUtils;
 import dev.sealbreaker.combat.item.SbCombatItems;
 import dev.sealbreaker.combat.swing.SbCombatAttachments;
-import dev.sealbreaker.combat.test.SbCombatTestFunctions;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -21,7 +20,6 @@ public final class SbCombat {
     public SbCombat(IEventBus modEventBus, ModContainer modContainer) {
         SbCombatAttachments.register(modEventBus);
         SbCombatItems.register(modEventBus);
-        SbCombatTestFunctions.register(modEventBus);
         LOGGER.info("Sealbreaker combat {} constructed", modContainer.getModInfo().getVersion());
     }
 }
