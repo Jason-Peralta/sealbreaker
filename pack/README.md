@@ -54,4 +54,6 @@ Either script finds a Java 25 (Gradle's toolchain folder, IntelliJ's JBR, or `JA
 
 ## History
 
-Initialised 6 Sep 2026 (`packwiz init` with NeoForge 26.2.0.76; `modrinth add geckolib curios jei`; the five module jars from the `v0.0.1` pre-release; `.packwizignore` for the README and the server script). Local `packwiz serve` verified to serve `pack.toml` and the mod metadata; the Prism import and the throwaway server join are the remaining checks (#3).
+Initialised 6 Sep 2026 (`packwiz init` with NeoForge 26.2.0.76; `modrinth add geckolib curios jei`; the five module jars from the `v0.0.1` pre-release; `.packwizignore` for the README and the server scripts). The same day the whole path ran end to end on the first machine: `packwiz serve`, `server/start.ps1` installing a throwaway server that loaded all eight mods, a Prism Launcher 11.1.0 portable instance (`C:\Users\<you>\tools\PrismLauncher\instances\Sealbreaker`, NeoForge 26.2.0.76, the pre-launch command above, Java 25 from Gradle's toolchain folder) whose pre-launch sync pulled the same eight mods, and a join to `localhost` from it (#3).
+
+Prism gotcha: type the pre-launch command in the instance's Settings > Custom commands dialog rather than writing `instance.cfg` by hand; Prism's INI reader turns a hand-written `"$INST_JAVA" -jar ...` into `javaw.exe-jar` unless the inner quotes are escaped (`PreLaunchCommand="\"$INST_JAVA\" -jar ..."`).
