@@ -13,3 +13,11 @@ subprojects {
         options.encoding = 'UTF-8'
     }
 }
+
+// Every module's headless game tests, one after another (each run loads the module and the modules it depends
+// on, so the tests of a dependency run more than once; cheap, and it keeps the CI step to one line).
+tasks.register('gameTests') {
+    group = 'verification'
+    description = 'Runs runGameTestServer in every module.'
+    dependsOn subprojects.collect { ":${it.name}:runGameTestServer" }
+}

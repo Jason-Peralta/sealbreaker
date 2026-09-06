@@ -1,0 +1,17 @@
+# Review rules (docs/03-roadmap.md, section 4): a pull request that touches an api package, a Mixin, a save
+# format or balance data needs a review from the other developer. Branch protection requires code-owner review;
+# a file with no owner here merges on green CI alone.
+
+# Public API packages of every module
+**/src/main/java/**/api/**            @Jason-Peralta @alachhman
+
+# Mixins live only in core, each justified (CLAUDE.md)
+sb_core/src/main/java/**/mixin/**     @Jason-Peralta @alachhman
+
+# Balance data: our datapack registries
+**/data/*/sb/**                       @Jason-Peralta @alachhman
+
+# Build, conventions and the decision log
+buildSrc/**                           @Jason-Peralta @alachhman
+CLAUDE.md                             @Jason-Peralta @alachhman
+docs/decisions/**                     @Jason-Peralta @alachhman
