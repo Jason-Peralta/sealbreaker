@@ -1,4 +1,4 @@
-# CLAUDE.md — working conventions for this repository
+# AGENTS.md — working conventions for this repository (a mirror of CLAUDE.md for other agent tools; edit CLAUDE.md, then copy)
 
 This is *Sealbreaker* (working title): an original, Terraria-inspired high-fantasy Minecraft Java modpack in which every gameplay mod is written by this two-person team. Read this file first in every session, then `docs/README.md`.
 

@@ -51,4 +51,4 @@ Milestone 0 (environment and spikes): all five spikes answered (`docs/spikes/`),
 
 ## Licence
 
-Code: MIT. Assets (textures, models, sounds, structures, lore): all rights reserved. Private repository until decided otherwise.
+Code: MIT. Assets (textures, models, sounds, structures, lore): all rights reserved. Public repository since 6 Sep 2026 (decision 0021).
