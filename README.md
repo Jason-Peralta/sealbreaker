@@ -47,7 +47,7 @@ One Gradle subproject per mod (`sb_core`, `sb_combat`, `sb_gear`, `sb_world`, `s
 
 ## Status
 
-Milestone 0 (environment and spikes): all five spikes answered (`docs/spikes/`), the build and the game tests pass from a fresh clone; the packwiz pack installs from a served URL and the IDE hot-swap loop is confirmed; remaining are the second machine, the CI workflow push (needs the `workflow` token scope) and the Prism/throwaway-server check (`docs/03-roadmap.md`).
+Milestone 0 (environment and spikes): all five spikes answered (`docs/spikes/`), the build and the game tests pass from a fresh clone; the packwiz pack installs from a served URL and the IDE hot-swap loop is confirmed; CI runs the build and every game test on each push and gates `main`; remaining are the second machine and the Prism client join (`docs/03-roadmap.md`).
 
 ## Licence
 
