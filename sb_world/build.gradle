@@ -1,0 +1,17 @@
+plugins {
+    id 'sealbreaker.mod'
+}
+
+// World reads Seal state and enemy hooks from core and combat (PRD section 6.2).
+sealbreakerMod.dependsOnModules ':sb_core', ':sb_combat'
+
+neoForge.runs {
+    // Structure captures: creates a fresh world for the given seed, finds the nearest sb_world:spike structure,
+    // teleports there, screenshots it and quits (see WorldDebug). Dev only.
+    clientWorld {
+        client()
+        loadedMods.addAll(project.provider { sealbreakerMod.loadedMods })
+        programArguments.addAll '--width', '1280', '--height', '720'
+        systemProperty 'sb.worlddebug', project.findProperty('sb.worlddebug') ?: '1'
+    }
+}

@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:function",
+  "function": "sb_world_tests:jigsaw_assembly",
+  "environment": "minecraft:default",
+  "structure": "sb_core_tests:arena_large",
+  "max_ticks": 100,
+  "setup_ticks": 1,
+  "required": true
+}

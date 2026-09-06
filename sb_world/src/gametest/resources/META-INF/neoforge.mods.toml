@@ -1,0 +1,15 @@
+# A test-only mod: loaded by the gameTestServer run alone (see build.gradle), never shipped.
+license="MIT"
+
+[[mods]]
+modId="sb_world_tests"
+version="0.0.1"
+displayName="Sealbreaker World game tests"
+description='''Game test functions and instances for sb_world.'''
+
+[[dependencies.sb_world_tests]]
+    modId="sb_world"
+    type="required"
+    versionRange="[0,)"
+    ordering="AFTER"
+    side="BOTH"

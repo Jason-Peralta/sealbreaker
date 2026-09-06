@@ -41,61 +41,72 @@ def write(path, data):
 
 
 def arena():
-    """A 16x9x16 game-test arena: a stone floor with 8 blocks of air above it."""
+    """Game-test arenas: a stone floor with air above it. 16x9x16 for most tests, 48x12x48 for structure assembly."""
     palette = [("minecraft:stone", None)]
     write("sb_core/src/gametest/resources/data/sb_core_tests/structure/arena.nbt",
           template((16, 9, 16), box(0, 0, 0, 15, 0, 15, 0), palette))
+    write("sb_core/src/gametest/resources/data/sb_core_tests/structure/arena_large.nbt",
+          template((48, 12, 48), box(0, 0, 0, 47, 0, 47, 0), palette))
 
 
 def spike_structure():
-    """S5: three jigsaw pieces. Stone brick shells with jigsaw blocks joining them and a locked door in the room.
+    """S5: three jigsaw pieces. Stone brick shells joined by jigsaw blocks set into the floor, a locked door on the room.
 
-    Pieces (x is width, y height, z depth; the entrance faces -z):
-      entrance  7x6x5  an open front, a jigsaw on the back wall leading to the corridor
-      corridor  5x5x7  a passage with jigsaws at both ends
+    Pieces (x is width, y height, z depth; every piece is entered from -z and continues toward +z):
+      entrance  7x6x5  open on its front, a doorway in its back wall
+      corridor  5x5x7  a passage with a doorway at both ends
       room      9x6x9  a closed room whose only way in is the locked door on its front wall
+
+    Jigsaw blocks sit in the floor under each doorway (final_state puts the floor back), so the connected
+    pieces' doorways line up: a jigsaw facing +z (south_up) meets the next piece's jigsaw facing -z (north_up).
+    The door's block entity data (its key) rides in the template as block NBT, which is what the spike checks.
     """
     stone = ("minecraft:stone_bricks", None)
-    cracked = ("minecraft:cracked_stone_bricks", None)
     air = ("minecraft:air", None)
-    jigsaw = ("minecraft:jigsaw", {"orientation": "north_up"})
     jigsaw_south = ("minecraft:jigsaw", {"orientation": "south_up"})
-    door_lower = ("sb_world:locked_door", {"half": "lower", "facing": "north", "open": "false"})
-    door_upper = ("sb_world:locked_door", {"half": "upper", "facing": "north", "open": "false"})
+    jigsaw_north = ("minecraft:jigsaw", {"orientation": "north_up"})
+    door_lower = ("sb_world:locked_door", {"facing": "north", "half": "lower", "hinge": "left", "open": "false", "powered": "false"})
+    door_upper = ("sb_world:locked_door", {"facing": "north", "half": "upper", "hinge": "left", "open": "false", "powered": "false"})
+    STONE, AIR, JIGSAW_SOUTH, JIGSAW_NORTH, DOOR_LOWER, DOOR_UPPER = range(6)
+    palette = [stone, air, jigsaw_south, jigsaw_north, door_lower, door_upper]
 
-    def shell(w, h, d, palette_index):
+    def shell(w, h, d):
         blocks = []
         for x in range(w):
             for y in range(h):
                 for z in range(d):
                     edge = x in (0, w - 1) or y in (0, h - 1) or z in (0, d - 1)
-                    blocks.append((x, y, z, palette_index if edge else 1))
+                    blocks.append((x, y, z, STONE if edge else AIR))
         return blocks
 
-    def jigsaw_nbt(name, target, pool, final_state, joint="rollable"):
-        return {"name": name, "target": target, "pool": pool, "final_state": final_state, "joint": joint}
+    def without(blocks, pred):
+        return [b for b in blocks if not pred(*b[:3])]
 
-    # entrance: open on the -z face (remove that wall), jigsaw on the +z wall pointing south into the corridor
-    palette = [stone, air, cracked, jigsaw_south, jigsaw]
-    blocks = [b for b in shell(7, 6, 5, 0) if not (b[2] == 0 and 0 < b[0] < 6 and 0 < b[1] < 5)]
-    blocks = [b for b in blocks if not (b[0] == 3 and b[1] in (1, 2) and b[2] == 4)]
-    blocks.append((3, 1, 4, 3, jigsaw_nbt("sb_world:entrance_back", "sb_world:corridor_front", "sb_world:spike/corridor", "minecraft:air")))
+    def jigsaw(x, y, z, index, name, target, pool, final_state="minecraft:stone_bricks"):
+        return (x, y, z, index, {"name": name, "target": target, "pool": pool, "final_state": final_state, "joint": "rollable"})
+
+    # entrance: no front wall (an open porch), a doorway in the back wall, the jigsaw under it pointing +z
+    blocks = shell(7, 6, 5)
+    blocks = without(blocks, lambda x, y, z: z == 0 and 0 < x < 6 and 0 < y < 5)
+    blocks = without(blocks, lambda x, y, z: x == 3 and y in (1, 2) and z == 4)
+    blocks = without(blocks, lambda x, y, z: (x, y, z) == (3, 0, 4))
+    blocks.append(jigsaw(3, 0, 4, JIGSAW_SOUTH, "sb_world:spike/entrance_back", "sb_world:spike/corridor_front", "sb_world:spike/corridor"))
     write("sb_world/src/main/resources/data/sb_world/structure/spike/entrance.nbt", template((7, 6, 5), blocks, palette))
 
-    # corridor: jigsaws on both ends, the far one accepts either the room or another corridor
-    blocks = shell(5, 5, 7, 0)
-    blocks = [b for b in blocks if not (b[0] == 2 and b[1] in (1, 2) and b[2] in (0, 6))]
-    blocks.append((2, 1, 0, 4, jigsaw_nbt("sb_world:corridor_front", "sb_world:entrance_back", "minecraft:empty", "minecraft:air")))
-    blocks.append((2, 1, 6, 3, jigsaw_nbt("sb_world:corridor_back", "sb_world:room_front", "sb_world:spike/room", "minecraft:air")))
+    # corridor: doorways at both ends; the far jigsaw asks the room pool for the next piece
+    blocks = shell(5, 5, 7)
+    blocks = without(blocks, lambda x, y, z: x == 2 and y in (1, 2) and z in (0, 6))
+    blocks = without(blocks, lambda x, y, z: x == 2 and y == 0 and z in (0, 6))
+    blocks.append(jigsaw(2, 0, 0, JIGSAW_NORTH, "sb_world:spike/corridor_front", "sb_world:spike/entrance_back", "minecraft:empty"))
+    blocks.append(jigsaw(2, 0, 6, JIGSAW_SOUTH, "sb_world:spike/corridor_back", "sb_world:spike/room_front", "sb_world:spike/room"))
     write("sb_world/src/main/resources/data/sb_world/structure/spike/corridor.nbt", template((5, 5, 7), blocks, palette))
 
-    # room: closed, a locked door in the middle of the front wall, a jigsaw beside it to join the corridor
-    palette = [stone, air, cracked, jigsaw_south, jigsaw, door_lower, door_upper]
-    blocks = [b for b in shell(9, 6, 9, 0) if not (b[0] == 4 and b[1] in (1, 2) and b[2] == 0)]
-    blocks.append((4, 1, 0, 5, {"key": "sb_world:spike_key"}))
-    blocks.append((4, 2, 0, 6))
-    blocks = [b for b in blocks if not (b[0] == 3 and b[1] == 1 and b[2] == 0)]
-    blocks.append((3, 1, 0, 4, jigsaw_nbt("sb_world:room_front", "sb_world:corridor_back", "minecraft:empty", "minecraft:stone_bricks")))
+    # room: closed, the locked door in the middle of the front wall with the jigsaw in the floor under it
+    blocks = shell(9, 6, 9)
+    blocks = without(blocks, lambda x, y, z: x == 4 and y in (0, 1, 2) and z == 0)
+    blocks.append(jigsaw(4, 0, 0, JIGSAW_NORTH, "sb_world:spike/room_front", "sb_world:spike/corridor_back", "minecraft:empty"))
+    blocks.append((4, 1, 0, DOOR_LOWER, {"key": "sb_world:spike_key"}))
+    blocks.append((4, 2, 0, DOOR_UPPER))
     write("sb_world/src/main/resources/data/sb_world/structure/spike/room.nbt", template((9, 6, 9), blocks, palette))
 
 
