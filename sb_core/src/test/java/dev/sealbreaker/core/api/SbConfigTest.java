@@ -20,6 +20,7 @@ class SbConfigTest {
         assertEquals(1.0, SbConfig.enemyHealthScalar());
         assertEquals(1.0, SbConfig.enemyDamageScalar());
         assertEquals(1.0, SbConfig.critDamageScalar());
+        assertEquals(1.0, SbConfig.mobWeaponProficiencyScalar());
         assertTrue(SbConfig.dropCoinsOnDeath(), "coins drop on death (decision 0013)");
         assertTrue(SbConfig.keepGearOnDeath(), "gear is kept on death (decision 0013)");
         assertEquals(SbConfig.SealMode.WORLD, SbConfig.sealMode(), "Seals are world-wide (decision 0016)");

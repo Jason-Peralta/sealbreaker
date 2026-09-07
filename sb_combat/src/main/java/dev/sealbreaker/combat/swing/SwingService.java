@@ -155,7 +155,10 @@ public final class SwingService {
 
     /** Applies one hit: damage through the vanilla pipeline, crit roll, knockback, feedback. */
     public static void hit(ServerPlayer player, ServerLevel level, LivingEntity target, SwingMove move) {
-        float damage = (float) player.getAttributeValue(Attributes.ATTACK_DAMAGE) * move.damageMultiplier();
+        // Proficiency is 1.0 for a player; when the swing system accepts other wielders it scales what a mob gets
+        // out of a weapon built for a player (decision 0023) without touching the moveset or the effects.
+        float damage = (float) (player.getAttributeValue(Attributes.ATTACK_DAMAGE) * move.damageMultiplier()
+                * SbAttributes.proficiencyOf(player));
         // Crit chance and multiplier are attributes (4% and 2x by default, decision 0016), so gear, the Lucky
         // prefix and accessories are the only things that change them; the config scales the multiplier.
         boolean crit = player.getRandom().nextDouble() < SbAttributes.valueOf(player, SbAttributes.CRIT_CHANCE);

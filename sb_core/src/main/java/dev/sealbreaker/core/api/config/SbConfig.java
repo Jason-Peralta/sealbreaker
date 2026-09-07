@@ -21,6 +21,7 @@ public final class SbConfig {
     private static final ModConfigSpec.DoubleValue ENEMY_HEALTH_SCALAR;
     private static final ModConfigSpec.DoubleValue ENEMY_DAMAGE_SCALAR;
     private static final ModConfigSpec.DoubleValue CRIT_DAMAGE_SCALAR;
+    private static final ModConfigSpec.DoubleValue MOB_WEAPON_PROFICIENCY_SCALAR;
     private static final ModConfigSpec.BooleanValue DROP_COINS;
     private static final ModConfigSpec.BooleanValue KEEP_GEAR;
     private static final ModConfigSpec.EnumValue<SealMode> SEAL_MODE;
@@ -29,6 +30,7 @@ public final class SbConfig {
     private static double enemyHealthScalar = 1.0;
     private static double enemyDamageScalar = 1.0;
     private static double critDamageScalar = 1.0;
+    private static double mobWeaponProficiencyScalar = 1.0;
     private static boolean dropCoinsOnDeath = true;
     private static boolean keepGearOnDeath = true;
     private static SealMode sealMode = SealMode.WORLD;
@@ -45,6 +47,12 @@ public final class SbConfig {
                 .defineInRange("enemy_damage_scalar", 1.0, 0.1, 10.0);
         CRIT_DAMAGE_SCALAR = builder.comment("Multiplies the crit damage multiplier attribute (2x by default, decision 0016).")
                 .defineInRange("crit_damage_scalar", 1.0, 0.1, 4.0);
+        MOB_WEAPON_PROFICIENCY_SCALAR = builder.comment(
+                        "Scales what a mob gets out of one of our weapons it picked up (decision 0023).",
+                        "The mob keeps the moveset and the effects; its damage, healing and knockback scale by its",
+                        "weapon proficiency attribute times this. 0 makes a stolen weapon harmless, 1 makes a zombie",
+                        "as dangerous with it as the mob type is meant to be.")
+                .defineInRange("mob_weapon_proficiency_scalar", 1.0, 0.0, 4.0);
         builder.pop();
 
         builder.comment("What death costs (PRD 3.12, decision 0013).").push("death");
@@ -82,6 +90,7 @@ public final class SbConfig {
         enemyHealthScalar = ENEMY_HEALTH_SCALAR.get();
         enemyDamageScalar = ENEMY_DAMAGE_SCALAR.get();
         critDamageScalar = CRIT_DAMAGE_SCALAR.get();
+        mobWeaponProficiencyScalar = MOB_WEAPON_PROFICIENCY_SCALAR.get();
         dropCoinsOnDeath = DROP_COINS.get();
         keepGearOnDeath = KEEP_GEAR.get();
         sealMode = SEAL_MODE.get();
@@ -97,6 +106,11 @@ public final class SbConfig {
 
     public static double critDamageScalar() {
         return critDamageScalar;
+    }
+
+    /** Scales a non-player wielder's weapon proficiency (decision 0023). */
+    public static double mobWeaponProficiencyScalar() {
+        return mobWeaponProficiencyScalar;
     }
 
     public static boolean dropCoinsOnDeath() {

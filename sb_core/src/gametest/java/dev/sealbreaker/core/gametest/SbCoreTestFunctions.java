@@ -16,6 +16,8 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.animal.pig.Pig;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
@@ -124,12 +126,21 @@ public final class SbCoreTestFunctions {
         helper.assertTrue(player.getAttributeValue(SbAttributes.MELEE_DAMAGE) == 1.0, "class multipliers start at 1.0");
         helper.assertTrue(player.getAttributeValue(SbAttributes.CRIT_CHANCE) == 0.04, "base crit chance is 4% (decision 0016)");
         helper.assertTrue(player.getAttributeValue(SbAttributes.CRIT_MULTIPLIER) == 2.0, "a crit deals 2x");
-        // A mob has no class attributes; damage code must fall back to the default rather than throw.
-        helper.assertTrue(SbAttributes.valueOf(helper.spawn(net.minecraft.world.entity.EntityTypes.PIG, new BlockPos(2, 1, 2)), SbAttributes.CRIT_CHANCE) == 0.04,
-                "valueOf falls back to the attribute's default for entities without it");
+
+        // Mobs carry the same attributes so they can use our weapons, at a fraction of a player (decision 0023).
+        Pig pig = helper.spawn(EntityTypes.PIG, new BlockPos(2, 1, 2));
+        SbAttributes.ALL.forEach(attribute ->
+                helper.assertTrue(pig.getAttributes().hasAttribute(attribute), "mobs carry " + attribute.getId()));
+        helper.assertTrue(pig.getAttributeValue(SbAttributes.MELEE_DAMAGE) == 1.0, "a mob class multiplier starts at 1.0 like a player");
+        helper.assertTrue(pig.getAttributeValue(SbAttributes.WEAPON_PROFICIENCY) == SbAttributes.MOB_PROFICIENCY,
+                "a mob starts at the mob share of a weapon built for a player");
+        helper.assertTrue(SbAttributes.proficiencyOf(player) == 1.0, "a player gets everything out of their weapon");
+        helper.assertTrue(SbAttributes.proficiencyOf(pig) == SbAttributes.MOB_PROFICIENCY,
+                "a mob gets the configured share, so a stolen weapon keeps its moveset but hits softer");
 
         helper.assertTrue(SbConfig.enemyHealthScalar() == 1.0 && SbConfig.enemyDamageScalar() == 1.0 && SbConfig.critDamageScalar() == 1.0,
                 "difficulty scalars default to the tuned experience");
+        helper.assertTrue(SbConfig.mobWeaponProficiencyScalar() == 1.0, "the mob proficiency scalar defaults to the tuned experience");
         helper.assertTrue(SbConfig.dropCoinsOnDeath() && SbConfig.keepGearOnDeath(), "death drops coins and keeps gear (decision 0013)");
         helper.assertTrue(SbConfig.sealMode() == SbConfig.SealMode.WORLD, "Seals are world-wide (decision 0016)");
         helper.succeed();
