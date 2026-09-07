@@ -1,0 +1,10 @@
+{
+  "rarity": "sb_core:common",
+  "stats": [
+    {
+      "amount": 0.15,
+      "attribute": "sb_core:ranged_damage",
+      "operation": "add_multiplied_total"
+    }
+  ]
+}

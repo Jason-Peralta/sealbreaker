@@ -11,6 +11,7 @@ import dev.sealbreaker.core.api.registry.SbRegistries;
 import dev.sealbreaker.core.datagen.SbCoreEntries;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.level.block.Blocks;
@@ -20,6 +21,7 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -66,10 +68,14 @@ public final class SbCoreTestFunctions {
         Set<Integer> orders = new HashSet<>();
         rarities.listElements().forEach(r -> orders.add(r.value().order()));
         helper.assertTrue(orders.size() == 6, "rarity orders are unique");
+        Rarity bad = rarities.getOrThrow(SbCoreEntries.BAD).value();
         Rarity common = rarities.getOrThrow(SbCoreEntries.COMMON).value();
         Rarity mythic = rarities.getOrThrow(SbCoreEntries.MYTHIC).value();
+        helper.assertTrue(bad.order() < common.order() && bad.reforgeCostMultiplier() < common.reforgeCostMultiplier(),
+                "bad sits below common, and a bad item is cheaper to reforge away");
         helper.assertTrue(common.order() < mythic.order() && common.reforgeCostMultiplier() < mythic.reforgeCostMultiplier(),
                 "common sits below mythic in order and reforge cost");
+        helper.assertTrue(mythic.rainbow() && !common.rainbow(), "only the top rarity is the rainbow one");
         helper.assertTrue(common.tooltipKey(SbCoreEntries.COMMON).equals("rarity.sb_core.common"), "the tooltip key derives from the id");
 
         helper.assertTrue(seals.listElements().count() == 6, "six Seals");
@@ -81,13 +87,25 @@ public final class SbCoreTestFunctions {
         helper.assertTrue(tier1.healthBudget() > 0 && tier1.defenseBudget() > 0 && tier1.reforgeBaseCost() > 0, "the tier budgets are set");
 
         ReforgeModifier lucky = modifiers.getOrThrow(SbCoreEntries.LUCKY).value();
-        helper.assertTrue(rarities.get(lucky.rarity()).isPresent(), "Lucky's rarity is a registered rarity");
+        helper.assertTrue(rarities.get(lucky.rarity()).isPresent(), "Lucky rarity is a registered rarity");
         helper.assertTrue(lucky.stats().size() == 1 && lucky.stats().getFirst().attribute().equals(SbCoreEntries.CRIT_CHANCE), "Lucky adds crit chance");
         helper.assertTrue(lucky.prefixKey(SbCoreEntries.LUCKY).equals("reforge.sb_core.lucky"), "the prefix key derives from the id");
+        ReforgeModifier broken = modifiers.getOrThrow(SbCoreEntries.BROKEN).value();
+        helper.assertTrue(broken.rarity().equals(SbCoreEntries.BAD) && broken.stats().getFirst().amount() < 0.0,
+                "a bad prefix is a penalty, not a prize");
 
-        ReforgePool meleePool = pools.getOrThrow(SbCoreEntries.MELEE_WEAPONS).value();
-        helper.assertTrue(meleePool.totalWeight() == 10 && modifiers.get(meleePool.entries().getFirst().modifier()).isPresent(),
-                "the melee pool lists a registered modifier with its weight");
+        // Four pools (decision 0022), each over its own tag, each listing registered modifiers.
+        helper.assertTrue(pools.listElements().count() == 4, "four reforge pools: tools, melee, guns, magic");
+        for (ResourceKey<ReforgePool> key : List.of(SbCoreEntries.TOOL_POOL, SbCoreEntries.MELEE_POOL, SbCoreEntries.GUN_POOL, SbCoreEntries.MAGIC_POOL)) {
+            ReforgePool pool = pools.getOrThrow(key).value();
+            helper.assertTrue(pool.totalWeight() > 0, key.identifier() + " has weighted entries");
+            pool.entries().forEach(entry -> helper.assertTrue(modifiers.get(entry.modifier()).isPresent(),
+                    key.identifier() + " lists the registered modifier " + entry.modifier().identifier()));
+            helper.assertTrue(pool.entries().stream().anyMatch(entry -> entry.modifier().equals(SbCoreEntries.BROKEN)),
+                    key.identifier() + " can roll the bad prefix");
+        }
+        // The tags are core, empty by default, and merged from content modules; the pools load either way.
+        helper.assertTrue(pools.getOrThrow(SbCoreEntries.MELEE_POOL).value().entries().size() == 4, "the melee pool has its four first-pass entries");
         helper.succeed();
     }
 

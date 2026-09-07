@@ -9,7 +9,8 @@ import dev.sealbreaker.core.api.reforge.ReforgeModifier;
 import dev.sealbreaker.core.api.reforge.ReforgePool;
 import dev.sealbreaker.core.api.reforge.StatModifier;
 import dev.sealbreaker.core.api.registry.SbRegistries;
-import net.minecraft.core.HolderSet;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderGetter;
 import net.minecraft.core.RegistrySetBuilder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.worldgen.BootstrapContext;
@@ -19,6 +20,7 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.Item;
 
 import java.util.List;
@@ -38,9 +40,9 @@ public final class SbCoreEntries {
     public static final ResourceKey<DamageClass> SUMMON = damageClass("summon");
     public static final ResourceKey<DamageClass> HEALING = damageClass("healing");
 
-    // rarities (PRD 3.12), lowest first
+    // rarities (decision 0022), lowest first; BAD sits below COMMON because a reforge prefix can be a penalty
+    public static final ResourceKey<Rarity> BAD = rarity("bad");
     public static final ResourceKey<Rarity> COMMON = rarity("common");
-    public static final ResourceKey<Rarity> UNCOMMON = rarity("uncommon");
     public static final ResourceKey<Rarity> RARE = rarity("rare");
     public static final ResourceKey<Rarity> EPIC = rarity("epic");
     public static final ResourceKey<Rarity> LEGENDARY = rarity("legendary");
@@ -59,14 +61,32 @@ public final class SbCoreEntries {
     /** The starting tier, the only one designed so far (decision 0009). */
     public static final ResourceKey<Tier> TIER_1 = tier("tier_1");
 
-    /** Lucky, the crit prefix (PRD 3.2, decision 0016): the only reforge source of crit chance. */
+    // Reforge modifiers: a first-pass set that exercises every pool and both directions (a prefix can be a
+    // penalty). The 12 Tier 1 modifiers arrive with the reforging ticket.
+    /** Lucky, the crit prefix: crit rides on gear, set bonuses, accessories and prefixes (decision 0022). */
     public static final ResourceKey<ReforgeModifier> LUCKY = modifier("lucky");
+    /** The one bad prefix of the first pass, in every pool, so the grey rarity is real from the start. */
+    public static final ResourceKey<ReforgeModifier> BROKEN = modifier("broken");
+    public static final ResourceKey<ReforgeModifier> QUICK = modifier("quick");
+    public static final ResourceKey<ReforgeModifier> STURDY = modifier("sturdy");
+    public static final ResourceKey<ReforgeModifier> HEAVY = modifier("heavy");
+    public static final ResourceKey<ReforgeModifier> DEADLY = modifier("deadly");
+    public static final ResourceKey<ReforgeModifier> ARCANE = modifier("arcane");
+
     /**
-     * The pool of every melee weapon. The tag is declared empty by core ({@code data/sb_core/tags/item/melee_weapons.json})
-     * so the pool loads in any world; content modules append their weapons to it from their own jars (tags merge).
+     * The four reforge pools (decision 0022): tools, melee weapons, guns (bows included) and magic (magic,
+     * healer and summoner items). Every tag is declared empty by core
+     * ({@code data/sb_core/tags/item/<name>.json}) so the pools load in any world; content modules append their
+     * items from their own jars, because tags merge.
      */
-    public static final ResourceKey<ReforgePool> MELEE_WEAPONS = pool("melee_weapons");
-    public static final TagKey<Item> MELEE_WEAPONS_TAG = TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(SbCore.MOD_ID, "melee_weapons"));
+    public static final ResourceKey<ReforgePool> TOOL_POOL = pool("tools");
+    public static final ResourceKey<ReforgePool> MELEE_POOL = pool("melee_weapons");
+    public static final ResourceKey<ReforgePool> GUN_POOL = pool("guns");
+    public static final ResourceKey<ReforgePool> MAGIC_POOL = pool("magic");
+    public static final TagKey<Item> TOOLS_TAG = itemTag("tools");
+    public static final TagKey<Item> MELEE_WEAPONS_TAG = itemTag("melee_weapons");
+    public static final TagKey<Item> GUNS_TAG = itemTag("guns");
+    public static final TagKey<Item> MAGIC_TAG = itemTag("magic");
 
     /** Attributes the attributes ticket registers; named by key here so the data loads before the Java exists. */
     public static final ResourceKey<Attribute> MELEE_DAMAGE = attribute("melee_damage");
@@ -95,14 +115,15 @@ public final class SbCoreEntries {
         context.register(HEALING, new DamageClass("healing", HEALING_POWER));
     }
 
-    /** Colours and cost multipliers are first-pass slice values (docs/data/rarity.md). */
+    /** The ladder of decision 0022; cost multipliers are first-pass slice values (docs/data/rarity.md). */
     static void rarities(BootstrapContext<Rarity> context) {
-        context.register(COMMON, new Rarity(0xFFFFFF, 0, Optional.empty(), 1.0f, Optional.empty()));
-        context.register(UNCOMMON, new Rarity(0x55FF55, 1, Optional.empty(), 1.25f, Optional.empty()));
-        context.register(RARE, new Rarity(0x55FFFF, 2, Optional.empty(), 1.5f, Optional.empty()));
-        context.register(EPIC, new Rarity(0xFF55FF, 3, Optional.empty(), 2.0f, Optional.empty()));
-        context.register(LEGENDARY, new Rarity(0xFFAA00, 4, Optional.empty(), 3.0f, Optional.empty()));
-        context.register(MYTHIC, new Rarity(0xFF5555, 5, Optional.empty(), 4.0f, Optional.empty()));
+        context.register(BAD, new Rarity(0x808080, 0, Optional.empty(), 0.75f, false, Optional.empty()));
+        context.register(COMMON, new Rarity(0xFFFFFF, 1, Optional.empty(), 1.0f, false, Optional.empty()));
+        context.register(RARE, new Rarity(0x5555FF, 2, Optional.empty(), 1.5f, false, Optional.empty()));
+        context.register(EPIC, new Rarity(0xAA55FF, 3, Optional.empty(), 2.0f, false, Optional.empty()));
+        context.register(LEGENDARY, new Rarity(0xFFAA00, 4, Optional.empty(), 3.0f, false, Optional.empty()));
+        // The top rarity cycles through the spectrum; the static colour is the fallback for chat and logs.
+        context.register(MYTHIC, new Rarity(0xFF55FF, 5, Optional.empty(), 4.0f, true, Optional.empty()));
     }
 
     static void seals(BootstrapContext<Seal> context) {
@@ -120,13 +141,53 @@ public final class SbCoreEntries {
     }
 
     static void modifiers(BootstrapContext<ReforgeModifier> context) {
-        context.register(LUCKY, new ReforgeModifier(Optional.empty(), UNCOMMON,
-                List.of(new StatModifier(CRIT_CHANCE, 0.04, AttributeModifier.Operation.ADD_VALUE))));
+        context.register(LUCKY, new ReforgeModifier(Optional.empty(), RARE,
+                List.of(stat(CRIT_CHANCE, 0.04, AttributeModifier.Operation.ADD_VALUE))));
+        context.register(BROKEN, new ReforgeModifier(Optional.empty(), BAD,
+                List.of(stat(Attributes.ATTACK_DAMAGE, -0.10, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL))));
+        context.register(QUICK, new ReforgeModifier(Optional.empty(), COMMON,
+                List.of(stat(Attributes.ATTACK_SPEED, 0.10, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL))));
+        context.register(STURDY, new ReforgeModifier(Optional.empty(), COMMON,
+                List.of(stat(Attributes.BLOCK_BREAK_SPEED, 0.15, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL))));
+        context.register(HEAVY, new ReforgeModifier(Optional.empty(), COMMON, List.of(
+                stat(Attributes.ATTACK_DAMAGE, 0.15, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL),
+                stat(Attributes.ATTACK_SPEED, -0.10, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL))));
+        context.register(DEADLY, new ReforgeModifier(Optional.empty(), COMMON,
+                List.of(stat(RANGED_DAMAGE, 0.15, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL))));
+        context.register(ARCANE, new ReforgeModifier(Optional.empty(), COMMON,
+                List.of(stat(MAGIC_DAMAGE, 0.15, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL))));
     }
 
+    /**
+     * One pool per item family (decision 0022). Which pool an item belongs to is its tag membership, so a spear
+     * cannot roll a sweep prefix simply because no pool that contains spears lists one.
+     */
     static void pools(BootstrapContext<ReforgePool> context) {
-        HolderSet<Item> meleeWeapons = context.lookup(Registries.ITEM).getOrThrow(MELEE_WEAPONS_TAG);
-        context.register(MELEE_WEAPONS, new ReforgePool(meleeWeapons, List.of(new ReforgePool.Entry(LUCKY, 10))));
+        HolderGetter<Item> items = context.lookup(Registries.ITEM);
+        context.register(TOOL_POOL, new ReforgePool(items.getOrThrow(TOOLS_TAG), List.of(
+                entry(BROKEN, 5), entry(QUICK, 10), entry(STURDY, 10))));
+        context.register(MELEE_POOL, new ReforgePool(items.getOrThrow(MELEE_WEAPONS_TAG), List.of(
+                entry(BROKEN, 5), entry(QUICK, 10), entry(HEAVY, 10), entry(LUCKY, 10))));
+        context.register(GUN_POOL, new ReforgePool(items.getOrThrow(GUNS_TAG), List.of(
+                entry(BROKEN, 5), entry(DEADLY, 10), entry(LUCKY, 10))));
+        context.register(MAGIC_POOL, new ReforgePool(items.getOrThrow(MAGIC_TAG), List.of(
+                entry(BROKEN, 5), entry(ARCANE, 10), entry(LUCKY, 10))));
+    }
+
+    private static StatModifier stat(ResourceKey<Attribute> attribute, double amount, AttributeModifier.Operation operation) {
+        return new StatModifier(attribute, amount, operation);
+    }
+
+    private static StatModifier stat(Holder<Attribute> attribute, double amount, AttributeModifier.Operation operation) {
+        return new StatModifier(attribute.getKey(), amount, operation);
+    }
+
+    private static ReforgePool.Entry entry(ResourceKey<ReforgeModifier> modifier, int weight) {
+        return new ReforgePool.Entry(modifier, weight);
+    }
+
+    private static TagKey<Item> itemTag(String name) {
+        return TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(SbCore.MOD_ID, name));
     }
 
     private static ResourceKey<DamageClass> damageClass(String name) {

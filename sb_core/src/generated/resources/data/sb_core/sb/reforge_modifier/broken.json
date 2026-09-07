@@ -1,0 +1,10 @@
+{
+  "rarity": "sb_core:bad",
+  "stats": [
+    {
+      "amount": -0.1,
+      "attribute": "minecraft:attack_damage",
+      "operation": "add_multiplied_total"
+    }
+  ]
+}

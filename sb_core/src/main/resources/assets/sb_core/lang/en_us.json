@@ -1,5 +1,23 @@
 {
   "sb_core.name": "Sealbreaker Core",
   "reforge.sb_core.named": "%s %s",
-  "reforge.sb_core.tooltip": "Reforge: %s"
+  "reforge.sb_core.tooltip": "Reforge: %s",
+  "rarity.sb_core.bad": "Bad",
+  "rarity.sb_core.common": "Common",
+  "rarity.sb_core.rare": "Rare",
+  "rarity.sb_core.epic": "Epic",
+  "rarity.sb_core.legendary": "Legendary",
+  "rarity.sb_core.mythic": "Mythic",
+  "reforge.sb_core.lucky": "Lucky",
+  "reforge.sb_core.broken": "Broken",
+  "reforge.sb_core.quick": "Quick",
+  "reforge.sb_core.sturdy": "Sturdy",
+  "reforge.sb_core.heavy": "Heavy",
+  "reforge.sb_core.deadly": "Deadly",
+  "reforge.sb_core.arcane": "Arcane",
+  "damage_class.melee": "Melee",
+  "damage_class.ranged": "Ranged",
+  "damage_class.magic": "Magic",
+  "damage_class.summon": "Summoner",
+  "damage_class.healing": "Healing"
 }

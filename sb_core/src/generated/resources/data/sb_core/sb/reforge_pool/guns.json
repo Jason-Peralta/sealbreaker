@@ -1,16 +1,12 @@
 {
-  "applies_to": "#sb_core:melee_weapons",
+  "applies_to": "#sb_core:guns",
   "entries": [
     {
       "modifier": "sb_core:broken",
       "weight": 5
     },
     {
-      "modifier": "sb_core:quick",
-      "weight": 10
-    },
-    {
-      "modifier": "sb_core:heavy",
+      "modifier": "sb_core:deadly",
       "weight": 10
     },
     {

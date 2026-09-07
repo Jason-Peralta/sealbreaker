@@ -1,5 +1,5 @@
 {
-  "applies_to": "#sb_core:melee_weapons",
+  "applies_to": "#sb_core:tools",
   "entries": [
     {
       "modifier": "sb_core:broken",
@@ -10,11 +10,7 @@
       "weight": 10
     },
     {
-      "modifier": "sb_core:heavy",
-      "weight": 10
-    },
-    {
-      "modifier": "sb_core:lucky",
+      "modifier": "sb_core:sturdy",
       "weight": 10
     }
   ]

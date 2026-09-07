@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -53,12 +54,16 @@ class RegistryCodecsTest {
 
     @Test
     void rarityRoundTripsWithHexColour() {
-        Rarity rare = new Rarity(0x55FFFF, 2, Optional.of("rarity.custom"), 1.5f, Optional.of(Identifier.fromNamespaceAndPath("sb_core", "rare")));
+        Rarity rare = new Rarity(0x5555FF, 2, Optional.of("rarity.custom"), 1.5f, false, Optional.of(Identifier.fromNamespaceAndPath("sb_core", "rare")));
         assertEquals(rare, roundTrip(Rarity.CODEC, rare));
         JsonObject json = json(Rarity.CODEC, rare);
-        assertEquals("#55ffff", json.get("color").getAsString(), "colours are written as #RRGGBB");
+        assertEquals("#5555ff", json.get("color").getAsString(), "colours are written as #RRGGBB");
         assertTrue(json.has("reforge_cost_multiplier"));
-        Rarity derived = new Rarity(0xFFFFFF, 0, Optional.empty(), 1.0f, Optional.empty());
+        assertFalse(json.has("rainbow"), "the default rainbow flag is omitted");
+        Rarity mythic = new Rarity(0xFF55FF, 5, Optional.empty(), 4.0f, true, Optional.empty());
+        assertEquals(mythic, roundTrip(Rarity.CODEC, mythic));
+        assertTrue(json(Rarity.CODEC, mythic).get("rainbow").getAsBoolean(), "the top rarity carries the rainbow flag");
+        Rarity derived = new Rarity(0xFFFFFF, 1, Optional.empty(), 1.0f, false, Optional.empty());
         assertEquals("rarity.sb_core.common", derived.tooltipKey(SbCoreEntries.COMMON));
         assertEquals("rarity.custom", rare.tooltipKey(SbCoreEntries.RARE));
     }
@@ -80,12 +85,16 @@ class RegistryCodecsTest {
     @Test
     void reforgeModifierRoundTripsWithVanillaOperationNames() {
         StatModifier stat = new StatModifier(SbCoreEntries.CRIT_CHANCE, 0.04, AttributeModifier.Operation.ADD_VALUE);
-        ReforgeModifier lucky = new ReforgeModifier(Optional.empty(), SbCoreEntries.UNCOMMON, List.of(stat));
+        ReforgeModifier lucky = new ReforgeModifier(Optional.empty(), SbCoreEntries.RARE, List.of(stat));
         assertEquals(lucky, roundTrip(ReforgeModifier.CODEC, lucky));
         JsonObject json = json(ReforgeModifier.CODEC, lucky);
         assertEquals("add_value", json.getAsJsonArray("stats").get(0).getAsJsonObject().get("operation").getAsString());
         assertEquals("reforge.sb_core.lucky", lucky.prefixKey(SbCoreEntries.LUCKY));
-        assertEquals("reforge.custom", new ReforgeModifier(Optional.of("reforge.custom"), SbCoreEntries.UNCOMMON, List.of()).prefixKey(SbCoreEntries.LUCKY));
+        assertEquals("reforge.custom", new ReforgeModifier(Optional.of("reforge.custom"), SbCoreEntries.RARE, List.of()).prefixKey(SbCoreEntries.LUCKY));
+
+        StatModifier penalty = new StatModifier(SbCoreEntries.CRIT_CHANCE, -0.10, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+        ReforgeModifier broken = new ReforgeModifier(Optional.empty(), SbCoreEntries.BAD, List.of(penalty));
+        assertEquals(broken, roundTrip(ReforgeModifier.CODEC, broken), "a bad prefix with a negative amount round-trips");
 
         AttributeModifier applied = stat.toAttributeModifier(Identifier.fromNamespaceAndPath("sb_core", "reforge/lucky"));
         assertEquals(0.04, applied.amount());
