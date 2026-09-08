@@ -31,7 +31,7 @@ Datapack registry declared by `sb_core`; read by `sb_combat` (server hit tests, 
 | `combo_window_ticks` | int | 10 | After a move ends, a tap within this many ticks continues the combo; later taps restart at the first move. A tap during a move is buffered and the next move starts the tick the current one ends: moves always play out in full. |
 | `idle` | animation id | none | Stance held while the weapon is in hand and no move plays; moves blend out of it and back into it over 3 ticks. Absent: the vanilla held-item pose. |
 | `tap` | list of moves (1–16) | required | The tap combo, in order. It wraps to the first move after the last. |
-| `tap[].shape` | `sweep`, `overhead` or `thrust` | required | `sweep`: the live hit window travels across the arc during the active ticks. `overhead`: a narrow cone, live for the whole active window (a chop). `thrust`: the same cone for a stab; give it a small arc and a longer reach. |
+| `tap[].shape` | `sweep`, `overhead`, `thrust` or `plunge` | required | `sweep`: the live hit window travels across the arc during the active ticks. `overhead`: a narrow cone, live for the whole active window (a chop). `thrust`: the same cone for a stab; give it a small arc and a longer reach. `plunge`: downward cone from the eyes, independent of look, held active until landing. |
 | `tap[].direction` | `left_to_right`, `right_to_left`, `none` | `none` | Travel direction of a sweep, from the attacker's point of view. |
 | `tap[].reach` | double | required | Horizontal reach in blocks from the eyes; a target's half-width counts toward it. |
 | `tap[].arc_degrees` | float | required | Total horizontal arc. |
@@ -43,6 +43,11 @@ Datapack registry declared by `sb_core`; read by `sb_combat` (server hit tests, 
 | `tap[].knockback` | float | 0.4 | Knockback strength per hit. |
 | `tap[].animation` | animation id | none | Player animation to play for the move (see below), in both third and first person. Without one the client falls back to a procedural pose. |
 | `tap[].hitstop_ticks` | int | 2 | Impact frames: on the move's first hit its timeline shifts by this many ticks, the attacker's pose freezes over the gap and the attacker's camera kicks. 0 disables. |
+| `forward_impulse` | double (0–4) | 0 | One server-authored horizontal velocity impulse along facing yaw when the move starts. |
+| `landing_particles` | int (0–256) | 0 | Block particles at the feet when a plunge lands. |
+| `landing_spread` | float (0–4) | 0 | Horizontal spread of the landing particles. |
+
+Move fields apply in every context. For `plunge`, `reach` is downward depth and `arc_degrees` the cone angle; `vertical_reach` only expands the broad-phase query. The target half-width and half-height count toward overlap. Landing closes damage immediately, freezes the impact pose for `hitstop_ticks`, then plays recovery. The synced transient `landing_tick` makes tracking clients use the same landing boundary.
 
 ## Input contexts (#15)
 
@@ -53,13 +58,13 @@ Datapack registry declared by `sb_core`; read by `sb_combat` (server hit tests, 
 | `charge_ticks` | positive int | 20 | Server ticks from initial press to full charge; must exceed the threshold when hold moves exist. |
 | `charge_curve` | `{min, max, exponent}` | identity (1, 1, 1) | Multiplies hold damage by `min + (max - min) * pow(clamp(held_ticks / charge_ticks, 0, 1), exponent)`. Nonnegative bounds, `max >= min`, positive exponent. |
 
-`AttackInput` samples attack-key edges every client tick, independent of whether the crosshair sees air, an entity or a block. The existing interaction event only suppresses vanilla attacks and mining for weapons; tools keep vanilla input. Falling (`!onGround` and negative vertical velocity) selects air on press, ground sprinting selects sprint on press, and ordinary input selects tap/hold on release. Rising input remains ordinary input. An aerial move ends on landing or when its authored duration expires; #16 supplies the sword's landing move and impact.
+`AttackInput` samples attack-key edges every client tick, independent of whether the crosshair sees air, an entity or a block. The existing interaction event only suppresses vanilla attacks and mining for weapons; tools keep vanilla input. Falling (`!onGround` and negative vertical velocity) selects air on press, ground sprinting selects sprint on press, and ordinary input selects tap/hold on release. Rising input remains ordinary input. An ordinary aerial move ends on landing or when its authored duration expires. A plunge keeps its final active tick until landing, then plays impact and recovery.
 
-The version-2 `swing_request` payload carries a context, release flag and cancellation flag. A normal press starts a server timer. The server derives charge from that timer, validates movement claims, ignores repeated presses/releases, and never accepts a client-supplied duration, target or damage value. Charge poses sync to tracking clients, hold before the hit window and cannot hit while the key is down. Release starts the active window (the hold already supplied the anticipation) with the capped charge multiplier.
+The `swing_request` payload carries a context, release flag and cancellation flag. Combat protocol version 3 includes the landing timestamp in synced swing state. A normal press starts a server timer. The server derives charge from that timer, validates movement claims, ignores repeated presses/releases, and never accepts a client-supplied duration, target or damage value. Charge poses sync to tracking clients, hold before the hit window and cannot hit while the key is down. Release starts the active window (the hold already supplied the anticipation) with the capped charge multiplier.
 
 Tap requests during any released move buffer at most one subsequent tap. Wind-up, active frames and recovery always finish before the buffered move starts. Context moves do not advance the tap combo. A switch of held stack/components, death, spectator mode, dimension/player replacement or opening a server menu clears stale state. Client menus, lost focus and weapon switches cancel a pending press and require a new press; cancelling a released move's input does not interrupt its recovery. Transient runtime state is cleared on logout/server shutdown; this adds no saved player data.
 
-The shipped sword remains the spike's tap-only reference until #16. `sb_combat_tests:input_fixture` exercises all four lists in test resources only. GameTests cover context rejection/selection, landing, full and partial charge, actual damage, duplicate requests, buffering and cancellation. JUnit covers input boundaries, the curve and codec validation/backward-compatible defaults. AC-08 still requires the dedicated-server input/mining/tool check in play; automated tests are not a substitute for that acceptance run.
+The shipped sword has all four contexts (#16). Its authored balance table is `sb_combat/src/data/sword.json`; `:sb_combat:runData` validates it through the registry codec and emits the committed `src/generated/resources/data/sb_combat/sb/weapon_archetype/sword.json`. Edit the source and regenerate. `sb_combat_tests:input_fixture` exercises all four lists in test resources only. GameTests cover context rejection/selection, landing, full and partial charge, actual damage, duplicate requests, buffering and cancellation. JUnit covers input boundaries, the curve and codec validation/backward-compatible defaults. AC-08 still requires the dedicated-server input/mining/tool check in play; automated tests are not a substitute for that acceptance run.
 
 ## Player animations
 
@@ -100,3 +105,25 @@ Contact sheets without a person at the keyboard: `./gradlew :sb_combat:runClient
 | Id | Combo | Notes |
 |---|---|---|
 | `sb_combat:sword` | sweep left-to-right (0.7×), sweep right-to-left (0.7×), thrust (1.4×, 30° lane, reach 3.4, knockback 0.7) | 5/2/4, 5/2/4 and 8/3/7 ticks (wind-up/active/recovery: 0.55 + 0.55 + 0.90 s); hitstop 2/2/3; combo window 12; idle `sword_idle` (vanilla's hold, all but untouched) and the chained animations `sword_sweep_ltr` (a backhand raised over the left shoulder, cut down to the right), `sword_sweep_rtl` (a forehand raised over the right shoulder, cut down to the left), `sword_thrust` in `assets/sb_combat/sb_animations/player/sword.json` (generated from `tools/gen_sword_anim.py`) |
+
+## Sword context reference (#16)
+
+| Context | Move | Wind-up / active / recovery | Behavior |
+|---|---|---|---|
+| Air | `sword_plunge` | 4 / 3 (extended until landing) / 6 | Downward cone, reach 3.2, arc 50°, damage 1.2×; landing has 12 block particles and 2 impact ticks. |
+| Sprint | `sword_lunge` | 4 / 3 / 6 | Cut with reach 3.5 (tap +0.5), 130° arc, damage 1.1×, forward impulse 0.45. |
+| Hold | `sword_heavy` | 8 / 3 / 9 | Raised overhead anticipation; release starts the chop. Base damage 1.3×, charge curve 1–2× with exponent 1.5, full at 24 ticks. Camera bone dips into contact. |
+
+The existing animation generator emits these clips alongside the unchanged tap combo. `PlungeTimingTest` checks landing/recovery timing at large world clocks; `SwordContextAnimationTest` checks the actual rig points the blade down during active frames for either main hand. `sword_contexts` and `sword_plunge` GameTests read the shipped data and check charge scaling, impulse, real downward hits, extended air time and landing recovery.
+
+Reproducible capture runs create uniquely named **fresh** worlds and a platform at loaded spawn; existing saves are never changed or deleted:
+
+```bash
+./gradlew :sb_combat:runClientSwordFrames
+./gradlew :sb_combat:runClientSwordFrames -Psb.animdebug=combo:fp
+./gradlew :sb_combat:runClientSwordHost
+# Once the host logs LAN publication on 25576, in another terminal:
+./gradlew :sb_combat:runClientSwordGuest
+```
+
+Frames cover all five existing views. First person retains the HUD because hiding it also hides the held weapon. Host and guest runs exercise real client payloads and tracking attachment sync; logs and `sword_<host|guest>_<context>_<phase>.png` record observed contexts. The host stages movement to make cases repeatable; this is a network/animation check, not a keyboard usability or dedicated-server acceptance run. Run frames and host sequentially because they share the main dev game directory; the guest uses `run/sword-guest`.

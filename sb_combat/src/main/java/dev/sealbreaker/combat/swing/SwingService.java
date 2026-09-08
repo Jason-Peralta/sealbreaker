@@ -8,6 +8,8 @@ import dev.sealbreaker.core.api.combat.WeaponArchetype;
 import dev.sealbreaker.core.api.component.SbDataComponents;
 import dev.sealbreaker.core.api.registry.SbRegistries;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -178,6 +180,13 @@ public final class SwingService {
         runtime.hitThisMove.clear();
         runtime.buffered = false;
         runtime.lastStep = -1;
+        double impulse = archetype.move(context, step).forwardImpulse();
+        if (impulse > 0) {
+            Vec3 forward = ArcHitTest.horizontalFromYaw(player.getYRot()).scale(impulse);
+            player.push(forward.x, 0, forward.z);
+            player.hurtMarked = true;
+            player.connection.send(new ClientboundSetEntityMotionPacket(player));
+        }
     }
 
     private static void cancelCharge(ServerPlayer player) {
@@ -248,8 +257,19 @@ public final class SwingService {
             return;
         }
         SwingMove move = archetype.move(swing.context(), swing.step());
-        long elapsed = swing.ticksSince(now);
-        if (move.isFinishedAt(elapsed) || (swing.context() == AttackContext.AIR && player.onGround())) {
+        boolean plunge = move.shape() == SwingMove.Shape.PLUNGE && swing.context() == AttackContext.AIR;
+        if (plunge && player.onGround() && swing.landingTick() < 0) {
+            swing = swing.landed(now);
+            player.setData(SbCombatAttachments.SWING.get(), swing);
+            if (move.landingParticles() > 0) {
+                var floor = runtime.level.getBlockState(player.blockPosition().below());
+                runtime.level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, floor),
+                        player.getX(), player.getY(), player.getZ(), move.landingParticles(),
+                        move.landingSpread(), 0, move.landingSpread(), 0);
+            }
+        }
+        long elapsed = swing.moveTicks(move, now);
+        if (move.isFinishedAt(elapsed) || (!plunge && swing.context() == AttackContext.AIR && player.onGround())) {
             player.removeData(SbCombatAttachments.SWING.get());
             if (runtime.buffered) {
                 int next = swing.context() == AttackContext.TAP ? archetype.nextStep(swing.step()) : 0;

@@ -13,7 +13,7 @@ import java.util.Optional;
  *
  * @param shape            how the hit region is formed
  * @param direction        for {@link Shape#SWEEP}: which way the blade travels across the arc
- * @param reach            horizontal reach in blocks, measured from the attacker's eyes
+ * @param reach            reach in blocks from the eyes; downward depth for a plunge, horizontal otherwise
  * @param arcDegrees       total horizontal arc; for a sweep the live window travels across it
  * @param verticalReach    how far above or below eye level a target's centre may be
  * @param windupTicks      ticks before the move can hit
@@ -26,6 +26,9 @@ import java.util.Optional;
  * @param hitstopTicks     ticks the move pauses on its first hit (the impact frames of a fighting game); the
  *                         move's timeline shifts by this much, the attacker's animation freezes and the camera
  *                         kicks. 0 disables it.
+ * @param forwardImpulse   one horizontal velocity impulse along facing yaw at move start; 0 disables it
+ * @param landingParticles block particle count on plunge landing; 0 disables it
+ * @param landingSpread    horizontal spread of the landing particles
  */
 public record SwingMove(
         Shape shape,
@@ -39,7 +42,10 @@ public record SwingMove(
         float damageMultiplier,
         float knockback,
         Optional<Identifier> animation,
-        int hitstopTicks
+        int hitstopTicks,
+        double forwardImpulse,
+        int landingParticles,
+        float landingSpread
 ) {
     public static final Codec<SwingMove> CODEC = RecordCodecBuilder.create(i -> i.group(
             Shape.CODEC.fieldOf("shape").forGetter(SwingMove::shape),
@@ -53,8 +59,18 @@ public record SwingMove(
             Codec.FLOAT.optionalFieldOf("damage_multiplier", 1.0f).forGetter(SwingMove::damageMultiplier),
             Codec.FLOAT.optionalFieldOf("knockback", 0.4f).forGetter(SwingMove::knockback),
             Identifier.CODEC.optionalFieldOf("animation").forGetter(SwingMove::animation),
-            Codec.INT.optionalFieldOf("hitstop_ticks", 2).forGetter(SwingMove::hitstopTicks)
+            Codec.INT.optionalFieldOf("hitstop_ticks", 2).forGetter(SwingMove::hitstopTicks),
+            Codec.doubleRange(0, 4).optionalFieldOf("forward_impulse", 0.0).forGetter(SwingMove::forwardImpulse),
+            Codec.intRange(0, 256).optionalFieldOf("landing_particles", 0).forGetter(SwingMove::landingParticles),
+            Codec.floatRange(0, 4).optionalFieldOf("landing_spread", 0.0f).forGetter(SwingMove::landingSpread)
     ).apply(i, SwingMove::new));
+
+    public SwingMove(Shape shape, Direction direction, double reach, float arcDegrees, double verticalReach,
+                     int windupTicks, int activeTicks, int recoveryTicks, float damageMultiplier, float knockback,
+                     Optional<Identifier> animation, int hitstopTicks) {
+        this(shape, direction, reach, arcDegrees, verticalReach, windupTicks, activeTicks, recoveryTicks,
+                damageMultiplier, knockback, animation, hitstopTicks, 0, 0, 0);
+    }
 
     public SwingMove(Shape shape, Direction direction, double reach, float arcDegrees, double verticalReach,
                      int windupTicks, int activeTicks, int recoveryTicks, float damageMultiplier, float knockback) {
@@ -89,7 +105,9 @@ public record SwingMove(
         /** A narrow cone in front of the attacker, live for the whole active window; a downward chop. */
         OVERHEAD("overhead"),
         /** A narrow cone straight ahead, live for the whole active window; a stab, so use a small arc and a long reach. */
-        THRUST("thrust");
+        THRUST("thrust"),
+        /** Downward cone held active while falling; landing starts recovery and its impact pause. */
+        PLUNGE("plunge");
 
         public static final Codec<Shape> CODEC = StringRepresentable.fromEnum(Shape::values);
         private final String name;
