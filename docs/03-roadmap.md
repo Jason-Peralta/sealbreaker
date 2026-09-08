@@ -68,6 +68,12 @@ Total to v1.0 at twelve combined hours a week: roughly **three to three and a ha
 - 3 enemies with distinct roles; Tier 1 settings, boss and unlocks *filled in* from the placeholders before art starts (a one-evening design session).
 - Tests: JUnit for rolling and Seal rules; GameTests for summon/despawn/bag, reforge application, moveset input contexts, the locked door.
 
+**Implementation progress (8 Sep 2026):**
+- [x] #15 input-context implementation: tick-based key edges; optional hold/air/sprint data; server validation and charge curve; context-aware synced poses; combo buffering and cancellation tests.
+- [x] #16 sword implementation: data-generated plunge/lunge/heavy moves, landing timeline and impact, one-shot lunge impulse, charged overhead animation; geometry/timing GameTests. Capture results are recorded in S1.
+- [ ] #16 human combat feel and dedicated-server acceptance; automation does not establish the blind playtest.
+- [ ] #15 AC-08 dedicated-server check: tap/hold/falling/sprint, weapons never mining and tools retaining vanilla behavior. Code and automated checks alone do not complete this acceptance step.
+
 **Effort split.** Developer A: combat core and player animation (the long pole), then boss framework. Developer B: core registries, gear, hub and NPC menu, structure, then the boss model and animations in Blockbench. Art budget: ~25% of both developers' time.
 
 **Exit criterion.** Blind playtest passes: a friend reaches and beats Boss I with sword and dash within two hours of a fresh world, reforges something on purpose, and prefers our sword to vanilla's when asked. Server holds two clients through the whole session with no desync visible in the boss fight. Acceptance criteria AC-01 to AC-08 (PRD 6.1) pass on the dedicated server, including the two-client death, disconnect, restart and duplicate-reforge cases.

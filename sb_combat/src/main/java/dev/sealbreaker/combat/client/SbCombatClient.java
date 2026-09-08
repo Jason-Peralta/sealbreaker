@@ -17,7 +17,7 @@ import net.minecraft.world.entity.player.PlayerModelType;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import dev.sealbreaker.combat.item.SbCombatItems;
-import dev.sealbreaker.combat.network.SwingRequestPayload;
+import dev.sealbreaker.combat.input.AttackInput;
 import dev.sealbreaker.combat.swing.SbCombatAttachments;
 import dev.sealbreaker.combat.swing.SwingState;
 import dev.sealbreaker.core.api.combat.SwingMove;
@@ -65,7 +65,7 @@ import java.util.Optional;
  */
 @EventBusSubscriber(modid = SbCombat.MOD_ID, value = Dist.CLIENT)
 public final class SbCombatClient {
-    private static long lastRequestTick = Long.MIN_VALUE;
+    private static final AttackInput ATTACK_INPUT = new AttackInput();
     /** Fraction of the head-body yaw difference closed each tick during a move (vanilla uses 0.3 for attacks). */
     private static final float BODY_TURN_RATE = 0.5f;
 
@@ -91,16 +91,32 @@ public final class SbCombatClient {
         }
         event.setCanceled(true);
         event.setSwingHand(false);
-        long now = player.level().getGameTime();
-        if (now != lastRequestTick) {
-            lastRequestTick = now;
-            ClientPacketDistributor.sendToServer(SwingRequestPayload.INSTANCE);
-        }
+
     }
 
     @SubscribeEvent
     static void onClientTick(ClientTickEvent.Post event) {
-        AnimDebug.tick(Minecraft.getInstance());
+        Minecraft minecraft = Minecraft.getInstance();
+        LocalPlayer player = minecraft.player;
+        WeaponArchetype archetype = null;
+        if (player != null) {
+            Identifier id = player.getMainHandItem().get(SbDataComponents.ARCHETYPE.get());
+            if (id != null) {
+                archetype = player.level().registryAccess().lookupOrThrow(SbRegistries.WEAPON_ARCHETYPE).getOptional(id).orElse(null);
+            }
+        }
+        boolean enabled = archetype != null && minecraft.gui.screen() == null && minecraft.isWindowActive()
+                && !minecraft.isPaused() && player.isAlive() && !player.isSpectator();
+        ATTACK_INPUT.tick(minecraft.options.keyAttack.isDown(), enabled,
+                player == null ? null : java.util.List.of(player, player.level(), player.getMainHandItem()),
+                player == null ? 0 : player.level().getGameTime(), archetype == null ? 0 : archetype.holdThresholdTicks(),
+                player != null && player.onGround(), player != null && player.getDeltaMovement().y < 0,
+                player != null && player.isSprinting(), payload -> {
+                    if (minecraft.getConnection() != null) {
+                        ClientPacketDistributor.sendToServer(payload);
+                    }
+                });
+        AnimDebug.tick(minecraft);
     }
 
     /**
@@ -169,7 +185,9 @@ public final class SbCombatClient {
             return;
         }
         if (data.pose() != null) {
-            AnimationPoser.apply(model, data.pose(), state.mainArm, state.xRot, data.moveWeight());
+            // A downward cone is gravity-aligned; aiming must not tilt its third-person blade sideways.
+            float aimPitch = data.move() != null && data.move().shape() == SwingMove.Shape.PLUNGE ? 0 : state.xRot;
+            AnimationPoser.apply(model, data.pose(), state.mainArm, aimPitch, data.moveWeight());
         } else if (data.move() != null) {
             SwingAnimations.poseThirdPerson(model, state);
         }
@@ -217,8 +235,12 @@ public final class SbCombatClient {
         // hand really is and the blade arrives on the crosshair at contact.
         float contact = move.windupTicks() + move.activeTicks() * 0.5f;
         float ramp = Mth.clamp(data.elapsedTicks() / Math.max(1.0f, contact), 0.0f, 1.0f);
-        float centring = ramp * ramp * (3.0f - 2.0f * ramp) * data.moveWeight();
-        return new FirstPersonWeaponRenderer.Framing(animation, move, data.moveWeight(), aim, centring);
+        // Let the weapon return to its idle framing during recovery. Keeping the contact offset at
+        // the final idle keyframe leaves it above the screen, then snaps when the state disappears.
+        float recovery = Mth.clamp((move.totalTicks() - data.elapsedTicks()) / Math.max(1, move.recoveryTicks()), 0, 1);
+        float weight = data.moveWeight() * recovery * recovery * (3 - 2 * recovery);
+        float centring = ramp * ramp * (3.0f - 2.0f * ramp) * weight;
+        return new FirstPersonWeaponRenderer.Framing(animation, move, weight, aim, centring);
     }
 
     /** What to draw for an avatar this frame: its move, its idle stance, or the debugger's frozen frame; null for vanilla. */
@@ -230,7 +252,12 @@ public final class SbCombatClient {
                 return null;
             }
             PlayerAnimation idle = PlayerAnimations.get(AnimDebug.DEBUG_IDLE);
-            return new SwingRenderData(null, AnimDebug.overrideSeconds() * 20.0f,
+            WeaponArchetype debugArchetype = avatar.level().registryAccess().lookupOrThrow(SbRegistries.WEAPON_ARCHETYPE)
+                    .getOptional(Identifier.fromNamespaceAndPath(SbCombat.MOD_ID, "sword")).orElse(null);
+            SwingMove debugMove = debugArchetype == null ? null : java.util.Arrays.stream(dev.sealbreaker.core.api.combat.AttackContext.values())
+                    .flatMap(context -> debugArchetype.moves(context).stream())
+                    .filter(move -> move.animation().filter(AnimDebug.overrideAnimation()::equals).isPresent()).findFirst().orElse(null);
+            return new SwingRenderData(debugMove, AnimDebug.overrideSeconds() * 20.0f,
                     new PoseSource.AnimationAt(animation, AnimDebug.overrideSeconds()), idle == null ? PlayerAnimation.EMPTY : idle, 1.0f);
         }
         Identifier archetypeId = avatar.getMainHandItem().get(SbDataComponents.ARCHETYPE.get());
@@ -253,8 +280,33 @@ public final class SbCombatClient {
         SwingMove move = null;
         PlayerAnimation animation = null;
         float elapsed = 0.0f;
+        if (swing != null && swing.charging() && swing.archetype().equals(archetypeId)) {
+            SwingMove chargingMove = archetype.get().move(swing.context(), swing.step());
+            PlayerAnimation chargeAnimation = chargingMove.animation().map(PlayerAnimations::get).orElse(null);
+            float progress = Mth.clamp((now - swing.startTick()) / archetype.get().chargeTicks(), 0, 1);
+            // Hold at the final anticipation frame; a charge never enters its hit window before release.
+            float chargeTime = progress * Math.max(0, chargingMove.windupTicks() - 1);
+            PoseSource pose = new PoseSource.AnimationAt(chargeAnimation == null ? idle : chargeAnimation, chargeTime / 20);
+            if (avatar == minecraft.player) {
+                CameraFeel.setPose(pose);
+            }
+            return new SwingRenderData(chargingMove, chargeTime, pose, idle, progress, false);
+        }
+        if (swing != null && swing.archetype().equals(archetypeId)
+                && swing.context() == dev.sealbreaker.core.api.combat.AttackContext.AIR
+                && archetype.get().move(swing.context(), swing.step()).shape() == SwingMove.Shape.PLUNGE) {
+            SwingMove plunge = archetype.get().move(swing.context(), swing.step());
+            PlayerAnimation plungeAnimation = plunge.animation().map(PlayerAnimations::get).orElse(idle);
+            float at = swing.animationTicks(plunge, avatar.level().getGameTime(), partial);
+            PoseSource pose = new PoseSource.AnimationAt(plungeAnimation, at / 20);
+            if (avatar == minecraft.player) {
+                CameraFeel.setPose(pose);
+            }
+            return new SwingRenderData(plunge, at, pose, idle, 1,
+                    swing.landingTick() < 0 && at >= plunge.windupTicks());
+        }
         if (swing != null && swing.archetype().equals(archetypeId)) {
-            SwingMove candidate = archetype.get().move(swing.step());
+            SwingMove candidate = archetype.get().move(swing.context(), swing.step());
             elapsed = now - swing.startTick();
             if (elapsed >= 0.0f && elapsed < candidate.totalTicks()) {
                 move = candidate;
@@ -269,7 +321,7 @@ public final class SbCombatClient {
             return move == null ? new SwingRenderData(null, 0.0f, new PoseSource.AnimationAt(idle, 0.0f), idle, 0.0f)
                     : new SwingRenderData(move, elapsed, null, idle, 1.0f);
         }
-        int total = swing == null ? 0 : archetype.get().move(swing.step()).totalTicks();
+        int total = swing == null ? 0 : archetype.get().move(swing.context(), swing.step()).totalTicks();
         SwingBlendTracker.Result result = SwingBlendTracker.pose(avatar.level(), avatar.getId(), swing, animation, total, idle, now);
         boolean local = avatar == minecraft.player;
         if (local) {

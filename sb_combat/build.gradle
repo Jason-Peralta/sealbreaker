@@ -5,6 +5,32 @@ plugins {
 sealbreakerMod.dependsOnModules ':sb_core'
 
 neoForge.runs {
+    clientSwordHost {
+        client()
+        loadedMods.addAll(project.provider { sealbreakerMod.loadedMods })
+        programArguments.addAll '--width', '1280', '--height', '720'
+        systemProperty 'sb.sworddebug', 'host'
+    }
+    clientSwordGuest {
+        client()
+        loadedMods.addAll(project.provider { sealbreakerMod.loadedMods })
+        gameDirectory = file('run/sword-guest')
+        programArguments.addAll '--username', 'Dev2', '--width', '1280', '--height', '720'
+        systemProperty 'sb.sworddebug', 'guest'
+    }
+
+    clientSwordFrames {
+        client()
+        loadedMods.addAll(project.provider { sealbreakerMod.loadedMods })
+        programArguments.addAll '--width', '1280', '--height', '720'
+        systemProperty 'sb.animdebug.create', 'true'
+        systemProperty 'sb.animdebug', project.findProperty('sb.animdebug') ?: 'sb_combat:sword_plunge,sb_combat:sword_lunge,sb_combat:sword_heavy'
+    }
+
+    data {
+        systemProperty 'sb.combat.dataInput', file('src/data').absolutePath
+    }
+
     // Animation contact sheets: joins the "Anim Capture" save, screenshots every frame of the listed
     // animations from behind, from the front and in first person, then quits (see AnimDebug).
     // Override the list with -Psb.animdebug=... on the command line.

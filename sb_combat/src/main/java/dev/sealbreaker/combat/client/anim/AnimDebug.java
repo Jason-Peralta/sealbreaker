@@ -57,6 +57,7 @@ public final class AnimDebug {
     private static View comboView = VIEWS[3];
     private static int comboTick = -1;
     private static boolean initialised;
+    private static boolean createdWorld;
     private static int settle;
     private static boolean reload;
     private static int reloadTicks;
@@ -93,8 +94,16 @@ public final class AnimDebug {
         if (!enabled()) {
             return;
         }
+        if (Boolean.getBoolean("sb.animdebug.create")) {
+            minecraft.options.pauseOnLostFocus = false;
+        }
         LocalPlayer player = minecraft.player;
         if (player == null || minecraft.level == null) {
+            if (Boolean.getBoolean("sb.animdebug.create") && !createdWorld
+                    && dev.sealbreaker.core.client.dev.DevHarness.readyToCreate(minecraft)) {
+                createdWorld = true;
+                dev.sealbreaker.core.client.dev.DevHarness.createFresh(minecraft, "Sword frames " + System.currentTimeMillis(), 4);
+            }
             return;
         }
         if (!initialised) {
@@ -118,6 +127,20 @@ public final class AnimDebug {
             if (player.isCreative()) {
                 player.connection.sendCommand("time set 1000");
                 player.connection.sendCommand("weather clear");
+                if (createdWorld) {
+                    if (!minecraft.gui.hud.isHidden()) {
+                        minecraft.gui.hud.toggle();
+                    }
+                    var server = minecraft.getSingleplayerServer();
+                    server.execute(() -> {
+                        var actor = server.getPlayerList().getPlayer(player.getUUID());
+                        if (actor != null) {
+                            var stage = actor.blockPosition().above(4);
+                            SwordCaptureStage.prepare(actor.level(), stage);
+                            actor.connection.teleport(stage.getX() + 0.5, stage.getY(), stage.getZ() + 0.5, 0, 0);
+                        }
+                    });
+                }
                 ItemStack sword = new ItemStack(SbCombatItems.SPIKE_SWORD.get());
                 player.getInventory().setSelectedSlot(0);
                 minecraft.gameMode.handleCreativeModeItemAdd(sword, 36);
@@ -157,6 +180,7 @@ public final class AnimDebug {
         }
         current = QUEUE.get(cursor);
         minecraft.options.setCameraType(current.view().camera());
+        setCaptureHud(minecraft, current.firstPerson());
         // The body faces the same way for every view; the third-person camera follows the look direction.
         float look = current.view().lookYaw();
         player.setYRot(look);
@@ -169,10 +193,18 @@ public final class AnimDebug {
         player.yHeadRotO = look;
     }
 
+    private static void setCaptureHud(Minecraft minecraft, boolean firstPerson) {
+        // F1 also hides the held weapon, so first-person captures must retain the HUD.
+        if (createdWorld && minecraft.gui.hud.isHidden() == firstPerson) {
+            minecraft.gui.hud.toggle();
+        }
+    }
+
     private static void tickCombo(Minecraft minecraft, LocalPlayer player) {
         comboTick++;
         if (comboTick == 0) {
             minecraft.options.setCameraType(comboView.camera());
+            setCaptureHud(minecraft, comboView.camera() == CameraType.FIRST_PERSON);
             float look = comboView.lookYaw();
             player.setYRot(look);
             player.yRotO = look;
@@ -184,7 +216,8 @@ public final class AnimDebug {
             player.yHeadRotO = look;
         }
         if (comboTick < COMBO_REQUEST_TICKS) {
-            net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(dev.sealbreaker.combat.network.SwingRequestPayload.INSTANCE);
+            net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(new dev.sealbreaker.combat.network.SwingRequestPayload(dev.sealbreaker.core.api.combat.AttackContext.TAP, false));
+            net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(new dev.sealbreaker.combat.network.SwingRequestPayload(dev.sealbreaker.core.api.combat.AttackContext.TAP, true));
         }
         if (comboTick % 2 == 0) {
             Screenshot.grab(minecraft.gameDirectory, String.format(Locale.ROOT, "combo_%s_%02d.png", comboView.name(), comboTick / 2),

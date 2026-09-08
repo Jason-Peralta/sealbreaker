@@ -1,11 +1,15 @@
 package dev.sealbreaker.combat.swing;
 
 import dev.sealbreaker.combat.SbCombat;
+import dev.sealbreaker.combat.network.SwingRequestPayload;
+import dev.sealbreaker.core.api.combat.AttackContext;
 import dev.sealbreaker.core.api.combat.SwingMove;
 import dev.sealbreaker.core.api.combat.WeaponArchetype;
 import dev.sealbreaker.core.api.component.SbDataComponents;
 import dev.sealbreaker.core.api.registry.SbRegistries;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -20,6 +24,8 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 
 import java.util.HashSet;
 import java.util.List;
@@ -45,50 +51,166 @@ public final class SwingService {
     private static final float BASE_CRIT_CHANCE = 0.04f;
     private static final float CRIT_MULTIPLIER = 2.0f;
 
-    /** Server-only bookkeeping per attacker: targets hit this move, buffered input, and the last combo position. */
+    /** Transient bookkeeping is bound to the exact player, level and held stack, never just an archetype. */
     private static final class Runtime {
+        final ServerPlayer owner;
+        final ServerLevel level;
+        final ItemStack weapon;
+        final ItemStack original;
         final Set<UUID> hitThisMove = new HashSet<>();
         boolean buffered;
         int lastStep = -1;
         long lastEndTick = Long.MIN_VALUE;
+        long pressedAt;
+        AttackContext pressContext;
+        boolean canCharge;
+
+        Runtime(ServerPlayer player) {
+            owner = player;
+            level = (ServerLevel) player.level();
+            weapon = player.getMainHandItem();
+            original = weapon.copy();
+        }
+
+        boolean matches(ServerPlayer player) {
+            return owner == player && level == player.level() && weapon == player.getMainHandItem()
+                    && ItemStack.isSameItemSameComponents(original, weapon);
+        }
     }
 
     private static final Map<UUID, Runtime> RUNTIME = new ConcurrentHashMap<>();
 
-    /** Handles a swing request from a client. */
-    public static void onSwingRequest(ServerPlayer player) {
-        ItemStack held = player.getMainHandItem();
-        Identifier archetypeId = held.get(SbDataComponents.ARCHETYPE.get());
+    /** Input edges from the client. Movement and charge duration are always checked on the server. */
+    public static void onSwingRequest(ServerPlayer player, SwingRequestPayload request) {
+        if (!player.isAlive() || player.isSpectator()) {
+            clear(player);
+            return;
+        }
+        Runtime runtime = RUNTIME.get(player.getUUID());
+        if (runtime != null && !runtime.matches(player)) {
+            clear(player);
+            runtime = null;
+        }
+        if (request.cancel()) {
+            if (runtime != null) {
+                runtime.pressContext = null;
+                SwingState swing = player.getExistingDataOrNull(SbCombatAttachments.SWING.get());
+                if (swing != null && swing.charging()) {
+                    player.removeData(SbCombatAttachments.SWING.get());
+                }
+            }
+            return;
+        }
+        Identifier archetypeId = player.getMainHandItem().get(SbDataComponents.ARCHETYPE.get());
         if (archetypeId == null) {
             return;
         }
         ServerLevel level = (ServerLevel) player.level();
-        Optional<WeaponArchetype> archetype = lookup(level, archetypeId);
-        if (archetype.isEmpty()) {
-            SbCombat.LOGGER.warn("Item {} references unknown weapon archetype {}", held, archetypeId);
+        WeaponArchetype archetype = lookup(level, archetypeId).orElse(null);
+        if (archetype == null) {
             return;
         }
+        if (runtime == null) {
+            runtime = new Runtime(player);
+            RUNTIME.put(player.getUUID(), runtime);
+        }
         long now = level.getGameTime();
-        Runtime runtime = RUNTIME.computeIfAbsent(player.getUUID(), k -> new Runtime());
-        SwingState current = player.getExistingDataOrNull(SbCombatAttachments.SWING.get());
-        if (current != null && current.archetype().equals(archetypeId)) {
-            SwingMove move = archetype.get().move(current.step());
-            if (!move.isFinishedAt(current.ticksSince(now))) {
-                runtime.buffered = true;
+        if (!request.release()) {
+            // HOLD is derived from a real TAP press, not a separately trusted client claim.
+            if (runtime.pressContext != null || request.context() == AttackContext.HOLD
+                    || !validContext(player, request.context())) {
                 return;
             }
+            runtime.pressContext = request.context();
+            runtime.pressedAt = now;
+            runtime.canCharge = player.getExistingDataOrNull(SbCombatAttachments.SWING.get()) == null;
+            if (request.context() != AttackContext.TAP) {
+                requestMove(player, archetype, archetypeId, request.context(), 1, runtime);
+            }
+            return;
         }
-        int step = 0;
-        if (runtime.lastStep >= 0 && now - runtime.lastEndTick <= archetype.get().comboWindowTicks()) {
-            step = archetype.get().nextStep(runtime.lastStep);
+        AttackContext pressed = runtime.pressContext;
+        runtime.pressContext = null; // a duplicate release cannot attack or charge twice
+        if (pressed != AttackContext.TAP) {
+            return; // movement contexts already fired on press; unmatched releases do nothing
         }
-        startMove(player, level, archetype.get(), archetypeId, step, runtime);
+        if (request.context() != AttackContext.TAP && request.context() != AttackContext.HOLD) {
+            cancelCharge(player);
+            return;
+        }
+        long heldTicks = now - runtime.pressedAt;
+        AttackContext context = heldTicks > archetype.holdThresholdTicks()
+                ? archetype.resolve(AttackContext.HOLD) : AttackContext.TAP;
+        if (context == AttackContext.HOLD && !runtime.canCharge) {
+            return;
+        }
+        cancelCharge(player);
+        float scale = context == AttackContext.HOLD ? archetype.chargeCurve().scale(heldTicks, archetype.chargeTicks()) : 1;
+        requestMove(player, archetype, archetypeId, context, scale, runtime);
     }
 
-    private static void startMove(ServerPlayer player, ServerLevel level, WeaponArchetype archetype, Identifier archetypeId, int step, Runtime runtime) {
-        player.setData(SbCombatAttachments.SWING.get(), new SwingState(archetypeId, step, level.getGameTime()));
+    private static boolean validContext(ServerPlayer player, AttackContext context) {
+        return switch (context) {
+            case AIR -> !player.onGround() && player.getDeltaMovement().y < 0;
+            case SPRINT -> player.onGround() && player.isSprinting();
+            case TAP, HOLD -> true;
+        };
+    }
+
+    private static void requestMove(ServerPlayer player, WeaponArchetype archetype, Identifier id,
+                                    AttackContext requested, float scale, Runtime runtime) {
+        AttackContext context = archetype.resolve(requested);
+        SwingState current = player.getExistingDataOrNull(SbCombatAttachments.SWING.get());
+        if (current != null) {
+            if (context == AttackContext.TAP && !current.charging()) {
+                runtime.buffered = true;
+            }
+            return;
+        }
+        int step = context == AttackContext.TAP && runtime.lastStep >= 0
+                && runtime.level.getGameTime() - runtime.lastEndTick <= archetype.comboWindowTicks()
+                ? archetype.nextStep(runtime.lastStep) : 0;
+        startMove(player, archetype, id, context, step, scale, runtime);
+    }
+
+    private static void startMove(ServerPlayer player, WeaponArchetype archetype, Identifier id, AttackContext context, int step, float scale, Runtime runtime) {
+        // Holding has already supplied the anticipation; release enters the move's active window.
+        long start = runtime.level.getGameTime() - (context == AttackContext.HOLD ? archetype.move(context, step).windupTicks() : 0);
+        player.setData(SbCombatAttachments.SWING.get(), new SwingState(id, step, start, context, false, scale));
         runtime.hitThisMove.clear();
         runtime.buffered = false;
+        runtime.lastStep = -1;
+        double impulse = archetype.move(context, step).forwardImpulse();
+        if (impulse > 0) {
+            Vec3 forward = ArcHitTest.horizontalFromYaw(player.getYRot()).scale(impulse);
+            player.push(forward.x, 0, forward.z);
+            player.hurtMarked = true;
+            player.connection.send(new ClientboundSetEntityMotionPacket(player));
+        }
+    }
+
+    private static void cancelCharge(ServerPlayer player) {
+        SwingState swing = player.getExistingDataOrNull(SbCombatAttachments.SWING.get());
+        if (swing != null && swing.charging()) {
+            player.removeData(SbCombatAttachments.SWING.get());
+        }
+    }
+
+    private static void clear(ServerPlayer player) {
+        RUNTIME.remove(player.getUUID());
+        player.removeData(SbCombatAttachments.SWING.get());
+    }
+
+    @SubscribeEvent
+    static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            clear(player);
+        }
+    }
+
+    @SubscribeEvent
+    static void onServerStopped(ServerStoppedEvent event) {
+        RUNTIME.clear();
     }
 
     /** The whoosh belongs to the strike, not the wind-up: played the tick the hit window opens. */
@@ -101,39 +223,69 @@ public final class SwingService {
 
     @SubscribeEvent
     static void onPlayerTick(PlayerTickEvent.Post event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            tick(player);
+        }
+    }
+
+    /** Shared by the server event and GameTests using mock server players. */
+    public static void tick(ServerPlayer player) {
+        Runtime runtime = RUNTIME.get(player.getUUID());
+        if (runtime == null) {
+            return;
+        }
+        if (!runtime.matches(player) || !player.isAlive() || player.isSpectator()
+                || player.containerMenu != player.inventoryMenu) {
+            clear(player);
+            return;
+        }
+        Identifier id = player.getMainHandItem().get(SbDataComponents.ARCHETYPE.get());
+        WeaponArchetype archetype = id == null ? null : lookup(runtime.level, id).orElse(null);
+        if (archetype == null) {
+            clear(player);
             return;
         }
         SwingState swing = player.getExistingDataOrNull(SbCombatAttachments.SWING.get());
-        if (swing == null) {
+        long now = runtime.level.getGameTime();
+        if (swing == null && runtime.pressContext == AttackContext.TAP && runtime.canCharge
+                && !archetype.hold().isEmpty() && now - runtime.pressedAt > archetype.holdThresholdTicks()) {
+            player.setData(SbCombatAttachments.SWING.get(),
+                    new SwingState(id, 0, runtime.pressedAt, AttackContext.HOLD, true, 1));
             return;
         }
-        ServerLevel level = (ServerLevel) player.level();
-        Optional<WeaponArchetype> archetype = lookup(level, swing.archetype());
-        if (archetype.isEmpty()) {
+        if (swing == null || swing.charging()) {
+            return;
+        }
+        SwingMove move = archetype.move(swing.context(), swing.step());
+        boolean plunge = move.shape() == SwingMove.Shape.PLUNGE && swing.context() == AttackContext.AIR;
+        if (plunge && player.onGround() && swing.landingTick() < 0) {
+            swing = swing.landed(now);
+            player.setData(SbCombatAttachments.SWING.get(), swing);
+            if (move.landingParticles() > 0) {
+                var floor = runtime.level.getBlockState(player.blockPosition().below());
+                runtime.level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, floor),
+                        player.getX(), player.getY(), player.getZ(), move.landingParticles(),
+                        move.landingSpread(), 0, move.landingSpread(), 0);
+            }
+        }
+        long elapsed = swing.moveTicks(move, now);
+        if (move.isFinishedAt(elapsed) || (!plunge && swing.context() == AttackContext.AIR && player.onGround())) {
             player.removeData(SbCombatAttachments.SWING.get());
-            return;
-        }
-        Runtime runtime = RUNTIME.computeIfAbsent(player.getUUID(), k -> new Runtime());
-        SwingMove move = archetype.get().move(swing.step());
-        long elapsed = swing.ticksSince(level.getGameTime());
-        if (move.isFinishedAt(elapsed)) {
-            if (runtime.buffered && player.getMainHandItem().has(SbDataComponents.ARCHETYPE.get())) {
-                startMove(player, level, archetype.get(), swing.archetype(), archetype.get().nextStep(swing.step()), runtime);
+            if (runtime.buffered) {
+                int next = swing.context() == AttackContext.TAP ? archetype.nextStep(swing.step()) : 0;
+                startMove(player, archetype, id, AttackContext.TAP, next, 1, runtime);
                 return;
             }
-            player.removeData(SbCombatAttachments.SWING.get());
-            runtime.buffered = false;
-            runtime.lastStep = swing.step();
-            runtime.lastEndTick = level.getGameTime();
+            runtime.lastStep = swing.context() == AttackContext.TAP ? swing.step() : -1;
+            runtime.lastEndTick = now;
             return;
         }
         int activeIndex = move.activeIndexAt(elapsed);
         if (activeIndex >= 0) {
             if (activeIndex == 0 && runtime.hitThisMove.isEmpty()) {
-                playSwing(player, level, move, swing.step());
+                playSwing(player, runtime.level, move, swing.step());
             }
-            applyActiveTick(player, level, move, activeIndex, runtime);
+            applyActiveTick(player, runtime.level, move, activeIndex, runtime);
         }
     }
 
@@ -147,7 +299,7 @@ public final class SwingService {
                 // Impact frames: shift the move's timeline; the clients freeze the pose over the gap.
                 SwingState swing = player.getExistingDataOrNull(SbCombatAttachments.SWING.get());
                 if (swing != null) {
-                    player.setData(SbCombatAttachments.SWING.get(), new SwingState(swing.archetype(), swing.step(), swing.startTick() + move.hitstopTicks()));
+                    player.setData(SbCombatAttachments.SWING.get(), swing.withStartTick(swing.startTick() + move.hitstopTicks()));
                 }
             }
             hit(player, level, target, move);
@@ -156,7 +308,9 @@ public final class SwingService {
 
     /** Applies one hit: damage through the vanilla pipeline, crit roll, knockback, feedback. */
     public static void hit(ServerPlayer player, ServerLevel level, LivingEntity target, SwingMove move) {
-        float damage = (float) player.getAttributeValue(Attributes.ATTACK_DAMAGE) * move.damageMultiplier();
+        SwingState swing = player.getExistingDataOrNull(SbCombatAttachments.SWING.get());
+        float scale = swing == null ? 1 : swing.damageScale();
+        float damage = (float) player.getAttributeValue(Attributes.ATTACK_DAMAGE) * move.damageMultiplier() * scale;
         boolean crit = player.getRandom().nextFloat() < BASE_CRIT_CHANCE;
         if (crit) {
             damage *= CRIT_MULTIPLIER;

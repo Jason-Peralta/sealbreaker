@@ -105,3 +105,18 @@ User verdict on the fifth pass: the forehand is right; the thrust goes off to th
 - Camera sway at 65%.
 
 Still open: feel in a person's hands (timing, arcs and every angle are in the two JSON files without touching Java); a hit-confirm flash or particle burst at the blade rather than at the target; Blockbench authoring instead of the generator script; an overhead chop animation for weapons that want one (the shape is still supported). Next per the user: the jump attack, the dash attack and the charge attack.
+
+
+## Update, 8 Sep 2026 (#16: airborne, sprint and charged sword moves)
+
+The sword now has all four contexts. `src/data/sword.json` is the authored balance source, validated and emitted by combat datagen; `tools/gen_sword_anim.py` emits the three new clips alongside the tap combo. The air move raises the sword then points it down, keeps the downward cone active until landing, and uses the synced landing timestamp for the impact pause and recovery. Sprint applies one data-driven forward impulse and reaches half a block beyond the first tap. Holding winds up an overhead heavy cut; release opens its hit window with the server's charge multiplier and a camera dip. A plunge's third-person pose stays aligned with gravity even when the player looks up or down.
+
+The frame debugger produced 245 frames covering back, quarter, side, front and first-person views. Reviewed wind-up, contact, follow-through and recovery samples for all three moves. This caught a first-person recovery fault: the contact-centering offset stayed applied at the final idle keyframe. It now fades during recovery so the weapon returns to its idle framing. Third-person samples show the raised anticipation, downward plunge, cross-body lunge and overhead heavy; first-person contact remains visible. These are an engineering visual review, not the player's verdict on feel.
+
+Two actual clients joined a LAN-published integrated server on this Mac (Java 25, Apple M3 Pro). Both observed the same `startTick` for tap (2837), sprint (2917), charge anticipation (2997), heavy release (3020, damage scale 2) and air (3077). Tap/sprint/air were observed at the same world tick; heavy release arrived at 3028 on the guest and was captured at 3029 on the host. Both rendered the host's sword and charge pose. Screenshot requests run on client ticks and can capture the preceding rendered frame, so these still images are not frame-identical synchronization measurements. The run used real request payloads and attachment sync, with staged positions/movement; it did not exercise keyboard input or a dedicated server.
+
+The real buffered tap combo also ran through the server in first person (`combo:fp`, 36 frames); the reviewed contact sheet shows both cuts, the thrust, trails and chaining.
+
+Reproduction: `runClientSwordFrames` for the five views; add `-Psb.animdebug=combo:fp` for the real buffered combo; `runClientSwordHost` then `runClientSwordGuest` for the network path. Each host/frame run creates its own fresh world and builds a lit stage at loaded spawn. Early captures with an unloaded origin, a hidden first-person weapon, or a paused menu were rejected and rerun; they do not count as acceptance. See `docs/data/weapon_archetype.md` for the commands and schema.
+
+Automated coverage reads the shipped sword table, validates all contexts, downward target selection and real damage, the once-only lunge impulse, capped charge, continued air activity and landing recovery. JUnit also checks blade direction for both hands and exact elapsed ticks in old worlds. Still required: human feel/animation sign-off and the M1 dedicated-server/AC-08 acceptance run; no blind playtest or dedicated-server pass is claimed.
