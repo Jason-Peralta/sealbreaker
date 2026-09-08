@@ -19,6 +19,7 @@ public final class SbCombat {
 
     public SbCombat(IEventBus modEventBus, ModContainer modContainer) {
         SbCombatAttachments.register(modEventBus);
+        dev.sealbreaker.combat.kit.KitAttachments.register(modEventBus);
         SbCombatItems.register(modEventBus);
         LOGGER.info("Sealbreaker combat {} constructed", modContainer.getModInfo().getVersion());
     }

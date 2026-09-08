@@ -28,6 +28,12 @@ public final class SbCombatTestFunctions {
     public static final DeferredRegister<Consumer<GameTestHelper>> TEST_FUNCTIONS =
             DeferredRegister.create(BuiltInRegistries.TEST_FUNCTION, SbCombatTests.MOD_ID);
 
+    public static final DeferredHolder<Consumer<GameTestHelper>, Consumer<GameTestHelper>> DASH_CAPABILITY =
+            TEST_FUNCTIONS.register("dash_capability", () -> DashGameTests::capabilityAndCooldown);
+
+    public static final DeferredHolder<Consumer<GameTestHelper>, Consumer<GameTestHelper>> DASH_COLLISION =
+            TEST_FUNCTIONS.register("dash_collision", () -> DashGameTests::collisionAndGroundGate);
+
     /** The sword's JSON loads, its sweeps travel left-to-right then right-to-left, and only the front pig is hit. */
     public static final DeferredHolder<Consumer<GameTestHelper>, Consumer<GameTestHelper>> ARC_TARGETING =
             TEST_FUNCTIONS.register("arc_targeting", () -> SbCombatTestFunctions::arcTargeting);

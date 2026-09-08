@@ -14,6 +14,11 @@ public final class SbCombatNetwork {
     @SubscribeEvent
     static void register(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar("1");
+        registrar.playToServer(DashRequestPayload.TYPE, DashRequestPayload.STREAM_CODEC, (payload, context) -> {
+            if (context.player() instanceof ServerPlayer player) {
+                dev.sealbreaker.combat.kit.DashService.request(player);
+            }
+        });
         registrar.playToServer(SwingRequestPayload.TYPE, SwingRequestPayload.STREAM_CODEC, (payload, context) -> {
             if (context.player() instanceof ServerPlayer player) {
                 SwingService.onSwingRequest(player);

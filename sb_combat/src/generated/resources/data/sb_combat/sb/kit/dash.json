@@ -1,0 +1,7 @@
+{
+  "cooldown_ticks": 30,
+  "distance": 4.0,
+  "duration_ticks": 4,
+  "invulnerable": false,
+  "lean_degrees": 12.0
+}
