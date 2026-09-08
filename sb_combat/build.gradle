@@ -5,6 +5,17 @@ plugins {
 sealbreakerMod.dependsOnModules ':sb_core'
 
 neoForge.runs {
+    clientDash {
+        client()
+        loadedMods.addAll(project.provider { sealbreakerMod.loadedMods })
+        programArguments.addAll '--width', '1280', '--height', '720'
+        systemProperty 'sb.dashdebug', 'true'
+    }
+
+    data {
+        systemProperty 'sb.combat.dataInput', file('src/data').absolutePath
+    }
+
     // Animation contact sheets: joins the "Anim Capture" save, screenshots every frame of the listed
     // animations from behind, from the front and in first person, then quits (see AnimDebug).
     // Override the list with -Psb.animdebug=... on the command line.

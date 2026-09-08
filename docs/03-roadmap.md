@@ -68,6 +68,10 @@ Total to v1.0 at twelve combined hours a week: roughly **three to three and a ha
 - 3 enemies with distinct roles; Tier 1 settings, boss and unlocks *filled in* from the placeholders before art starts (a one-evening design session).
 - Tests: JUnit for rolling and Seal rules; GameTests for summon/despawn/bag, reforge application, moveset input contexts, the locked door.
 
+**Implementation progress (8 Sep 2026):**
+- [x] #20 dash capability contract, server movement/cooldown validation, data provider, Controls key and synced lean; JUnit and GameTests added.
+- [ ] #20 in-world review of dash feel, lean and two-client position agreement. Accessory integration is #25; players are not granted the flag by default.
+
 **Effort split.** Developer A: combat core and player animation (the long pole), then boss framework. Developer B: core registries, gear, hub and NPC menu, structure, then the boss model and animations in Blockbench. Art budget: ~25% of both developers' time.
 
 **Exit criterion.** Blind playtest passes: a friend reaches and beats Boss I with sword and dash within two hours of a fresh world, reforges something on purpose, and prefers our sword to vanilla's when asked. Server holds two clients through the whole session with no desync visible in the boss fight. Acceptance criteria AC-01 to AC-08 (PRD 6.1) pass on the dedicated server, including the two-client death, disconnect, restart and duplicate-reforge cases.
