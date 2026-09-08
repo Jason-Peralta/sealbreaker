@@ -28,6 +28,18 @@ public final class SbCombatTestFunctions {
     public static final DeferredRegister<Consumer<GameTestHelper>> TEST_FUNCTIONS =
             DeferredRegister.create(BuiltInRegistries.TEST_FUNCTION, SbCombatTests.MOD_ID);
 
+    public static final DeferredHolder<Consumer<GameTestHelper>, Consumer<GameTestHelper>> INPUT_CONTEXTS =
+            TEST_FUNCTIONS.register("input_contexts", () -> InputGameTests::contexts);
+
+    public static final DeferredHolder<Consumer<GameTestHelper>, Consumer<GameTestHelper>> INPUT_CHARGE =
+            TEST_FUNCTIONS.register("input_charge", () -> InputGameTests::charge);
+
+    public static final DeferredHolder<Consumer<GameTestHelper>, Consumer<GameTestHelper>> INPUT_BUFFERING =
+            TEST_FUNCTIONS.register("input_buffering", () -> InputGameTests::buffering);
+
+    public static final DeferredHolder<Consumer<GameTestHelper>, Consumer<GameTestHelper>> INPUT_CANCELLATION =
+            TEST_FUNCTIONS.register("input_cancellation", () -> InputGameTests::cancellation);
+
     /** The sword's JSON loads, its sweeps travel left-to-right then right-to-left, and only the front pig is hit. */
     public static final DeferredHolder<Consumer<GameTestHelper>, Consumer<GameTestHelper>> ARC_TARGETING =
             TEST_FUNCTIONS.register("arc_targeting", () -> SbCombatTestFunctions::arcTargeting);

@@ -1,0 +1,78 @@
+{
+  "tap": [
+    {
+      "shape": "thrust",
+      "reach": 3,
+      "arc_degrees": 30,
+      "vertical_reach": 2,
+      "windup_ticks": 2,
+      "active_ticks": 2,
+      "recovery_ticks": 3,
+      "damage_multiplier": 1,
+      "knockback": 0,
+      "hitstop_ticks": 0
+    },
+    {
+      "shape": "thrust",
+      "reach": 3,
+      "arc_degrees": 30,
+      "vertical_reach": 2,
+      "windup_ticks": 2,
+      "active_ticks": 2,
+      "recovery_ticks": 3,
+      "damage_multiplier": 1.5,
+      "knockback": 0,
+      "hitstop_ticks": 0
+    }
+  ],
+  "hold": [
+    {
+      "shape": "thrust",
+      "reach": 3,
+      "arc_degrees": 30,
+      "vertical_reach": 2,
+      "windup_ticks": 2,
+      "active_ticks": 2,
+      "recovery_ticks": 3,
+      "damage_multiplier": 2,
+      "knockback": 0,
+      "hitstop_ticks": 0
+    }
+  ],
+  "air": [
+    {
+      "shape": "overhead",
+      "reach": 3,
+      "arc_degrees": 30,
+      "vertical_reach": 2,
+      "windup_ticks": 2,
+      "active_ticks": 2,
+      "recovery_ticks": 3,
+      "damage_multiplier": 1,
+      "knockback": 0,
+      "hitstop_ticks": 0
+    }
+  ],
+  "sprint": [
+    {
+      "shape": "thrust",
+      "reach": 4,
+      "arc_degrees": 30,
+      "vertical_reach": 2,
+      "windup_ticks": 2,
+      "active_ticks": 2,
+      "recovery_ticks": 3,
+      "damage_multiplier": 1,
+      "knockback": 0,
+      "hitstop_ticks": 0
+    }
+  ],
+  "combo_window_ticks": 8,
+  "hold_threshold_ticks": 6,
+  "charge_ticks": 20,
+  "charge_curve": {
+    "min": 1,
+    "max": 3,
+    "exponent": 2
+  }
+}

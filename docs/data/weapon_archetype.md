@@ -44,7 +44,22 @@ Datapack registry declared by `sb_core`; read by `sb_combat` (server hit tests, 
 | `tap[].animation` | animation id | none | Player animation to play for the move (see below), in both third and first person. Without one the client falls back to a procedural pose. |
 | `tap[].hitstop_ticks` | int | 2 | Impact frames: on the move's first hit its timeline shifts by this many ticks, the attacker's pose freezes over the gap and the attacker's camera kicks. 0 disables. |
 
-Planned fields from the PRD: `hold`, `air`, `sprint` moves.
+## Input contexts (#15)
+
+| Field | Type | Default | Meaning |
+|---|---|---|---|
+| `hold`, `air`, `sprint` | list of moves (0–16) | empty | Optional contexts; the first move is used. An absent/empty context falls back to tap. Only tap advances a combo. |
+| `hold_threshold_ticks` | nonnegative int | 6 | A ground/ordinary press released at or before this boundary is a tap; longer holds charge. |
+| `charge_ticks` | positive int | 20 | Server ticks from initial press to full charge; must exceed the threshold when hold moves exist. |
+| `charge_curve` | `{min, max, exponent}` | identity (1, 1, 1) | Multiplies hold damage by `min + (max - min) * pow(clamp(held_ticks / charge_ticks, 0, 1), exponent)`. Nonnegative bounds, `max >= min`, positive exponent. |
+
+`AttackInput` samples attack-key edges every client tick, independent of whether the crosshair sees air, an entity or a block. The existing interaction event only suppresses vanilla attacks and mining for weapons; tools keep vanilla input. Falling (`!onGround` and negative vertical velocity) selects air on press, ground sprinting selects sprint on press, and ordinary input selects tap/hold on release. Rising input remains ordinary input. An aerial move ends on landing or when its authored duration expires; #16 supplies the sword's landing move and impact.
+
+The version-2 `swing_request` payload carries a context, release flag and cancellation flag. A normal press starts a server timer. The server derives charge from that timer, validates movement claims, ignores repeated presses/releases, and never accepts a client-supplied duration, target or damage value. Charge poses sync to tracking clients, hold before the hit window and cannot hit while the key is down. Release starts the active window (the hold already supplied the anticipation) with the capped charge multiplier.
+
+Tap requests during any released move buffer at most one subsequent tap. Wind-up, active frames and recovery always finish before the buffered move starts. Context moves do not advance the tap combo. A switch of held stack/components, death, spectator mode, dimension/player replacement or opening a server menu clears stale state. Client menus, lost focus and weapon switches cancel a pending press and require a new press; cancelling a released move's input does not interrupt its recovery. Transient runtime state is cleared on logout/server shutdown; this adds no saved player data.
+
+The shipped sword remains the spike's tap-only reference until #16. `sb_combat_tests:input_fixture` exercises all four lists in test resources only. GameTests cover context rejection/selection, landing, full and partial charge, actual damage, duplicate requests, buffering and cancellation. JUnit covers input boundaries, the curve and codec validation/backward-compatible defaults. AC-08 still requires the dedicated-server input/mining/tool check in play; automated tests are not a substitute for that acceptance run.
 
 ## Player animations
 

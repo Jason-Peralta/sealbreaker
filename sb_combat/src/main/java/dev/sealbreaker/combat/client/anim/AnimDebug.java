@@ -184,7 +184,8 @@ public final class AnimDebug {
             player.yHeadRotO = look;
         }
         if (comboTick < COMBO_REQUEST_TICKS) {
-            net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(dev.sealbreaker.combat.network.SwingRequestPayload.INSTANCE);
+            net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(new dev.sealbreaker.combat.network.SwingRequestPayload(dev.sealbreaker.core.api.combat.AttackContext.TAP, false));
+            net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(new dev.sealbreaker.combat.network.SwingRequestPayload(dev.sealbreaker.core.api.combat.AttackContext.TAP, true));
         }
         if (comboTick % 2 == 0) {
             Screenshot.grab(minecraft.gameDirectory, String.format(Locale.ROOT, "combo_%s_%02d.png", comboView.name(), comboTick / 2),

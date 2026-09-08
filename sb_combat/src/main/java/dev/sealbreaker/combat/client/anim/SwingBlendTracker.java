@@ -46,6 +46,8 @@ public final class SwingBlendTracker {
         long startTick;
         float freezeAt = -1.0f;
         int freezeTicks;
+        float cancelledAt = Float.NaN;
+        PoseSource cancelledPose;
 
         Entry(SwingState state, PlayerAnimation animation, int totalTicks, @Nullable PoseSource from) {
             this.state = state;
@@ -65,7 +67,7 @@ public final class SwingBlendTracker {
         }
 
         boolean sameMove(SwingState other) {
-            return state.archetype().equals(other.archetype()) && state.step() == other.step();
+            return state.archetype().equals(other.archetype()) && state.step() == other.step() && state.context() == other.context();
         }
     }
 
@@ -101,8 +103,13 @@ public final class SwingBlendTracker {
                 ENTRIES.put(entityId, entry);
             }
         }
+        if (state == null && entry != null && Float.isNaN(entry.cancelledAt) && entry.elapsed(nowTicks) < entry.totalTicks) {
+            entry.cancelledPose = displayed(entry, idle, nowTicks).pose();
+            entry.cancelledAt = nowTicks;
+        }
         Result result = displayed(entry, idle, nowTicks);
-        if (entry != null && entry.elapsed(nowTicks) >= entry.totalTicks + BLEND_OUT_TICKS) {
+        if (entry != null && (entry.elapsed(nowTicks) >= entry.totalTicks + BLEND_OUT_TICKS
+                || (!Float.isNaN(entry.cancelledAt) && nowTicks - entry.cancelledAt >= BLEND_OUT_TICKS))) {
             ENTRIES.remove(entityId);
         }
         return impact ? new Result(result.pose(), result.moveWeight(), result.elapsed(), true) : result;
@@ -112,6 +119,10 @@ public final class SwingBlendTracker {
         PoseSource rest = new PoseSource.AnimationAt(idle, 0.0f);
         if (entry == null) {
             return new Result(rest, 0.0f, -1.0f, false);
+        }
+        if (!Float.isNaN(entry.cancelledAt)) {
+            float weight = Math.clamp((atTicks - entry.cancelledAt) / BLEND_OUT_TICKS, 0, 1);
+            return new Result(new BlendedPose(entry.cancelledPose, rest, weight), 1 - weight, -1, false);
         }
         float elapsed = entry.elapsed(atTicks);
         if (elapsed < entry.totalTicks) {
