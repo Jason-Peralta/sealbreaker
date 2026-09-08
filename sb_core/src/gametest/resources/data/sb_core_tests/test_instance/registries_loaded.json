@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:function",
+  "function": "sb_core_tests:registries_loaded",
+  "environment": "minecraft:default",
+  "structure": "sb_core_tests:arena",
+  "max_ticks": 20,
+  "setup_ticks": 1,
+  "required": true
+}

@@ -1,0 +1,17 @@
+{
+  "applies_to": "#sb_core:guns",
+  "entries": [
+    {
+      "modifier": "sb_core:broken",
+      "weight": 5
+    },
+    {
+      "modifier": "sb_core:deadly",
+      "weight": 10
+    },
+    {
+      "modifier": "sb_core:lucky",
+      "weight": 10
+    }
+  ]
+}

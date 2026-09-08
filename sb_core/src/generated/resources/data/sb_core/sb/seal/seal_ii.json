@@ -1,0 +1,7 @@
+{
+  "boss": "sb_bosses:boss_ii",
+  "order": 2,
+  "unlocks": [
+    "sb_core:nether_ignition"
+  ]
+}

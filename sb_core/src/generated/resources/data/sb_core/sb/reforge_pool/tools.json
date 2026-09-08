@@ -1,0 +1,17 @@
+{
+  "applies_to": "#sb_core:tools",
+  "entries": [
+    {
+      "modifier": "sb_core:broken",
+      "weight": 5
+    },
+    {
+      "modifier": "sb_core:quick",
+      "weight": 10
+    },
+    {
+      "modifier": "sb_core:sturdy",
+      "weight": 10
+    }
+  ]
+}

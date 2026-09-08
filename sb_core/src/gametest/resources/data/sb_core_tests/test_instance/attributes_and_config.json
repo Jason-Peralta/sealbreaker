@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:function",
+  "function": "sb_core_tests:attributes_and_config",
+  "environment": "minecraft:default",
+  "structure": "sb_core_tests:arena",
+  "max_ticks": 20,
+  "setup_ticks": 1,
+  "required": true
+}

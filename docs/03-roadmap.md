@@ -55,6 +55,8 @@ Total to v1.0 at twelve combined hours a week: roughly **three to three and a ha
 
 ### M1 — Vertical slice (3–4 months)
 
+Status (6 Sep 2026): #10 (the six `sb:*` datapack registries with datagen entries, docs and tests) and #13 (our attributes, the common config and the `crit_chance` handover from `sb_combat`) are in review; the rest of M1 is open.
+
 **Goals.** Prove the core loop is fun with the smallest possible content: swing, dash, beat a boss, break a Seal, reforge, go again.
 
 **Deliverables** (PRD "Slice" column throughout):

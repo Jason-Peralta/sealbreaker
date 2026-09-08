@@ -1,9 +1,11 @@
 package dev.sealbreaker.combat.swing;
 
 import dev.sealbreaker.combat.SbCombat;
+import dev.sealbreaker.core.api.attribute.SbAttributes;
 import dev.sealbreaker.core.api.combat.SwingMove;
 import dev.sealbreaker.core.api.combat.WeaponArchetype;
 import dev.sealbreaker.core.api.component.SbDataComponents;
+import dev.sealbreaker.core.api.config.SbConfig;
 import dev.sealbreaker.core.api.registry.SbRegistries;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.Identifier;
@@ -41,9 +43,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @EventBusSubscriber(modid = SbCombat.MOD_ID)
 public final class SwingService {
-    /** Base crit chance (decision 0016: 4% for every class); gear and prefixes add to it in Milestone 1. */
-    private static final float BASE_CRIT_CHANCE = 0.04f;
-    private static final float CRIT_MULTIPLIER = 2.0f;
 
     /** Server-only bookkeeping per attacker: targets hit this move, buffered input, and the last combo position. */
     private static final class Runtime {
@@ -156,10 +155,15 @@ public final class SwingService {
 
     /** Applies one hit: damage through the vanilla pipeline, crit roll, knockback, feedback. */
     public static void hit(ServerPlayer player, ServerLevel level, LivingEntity target, SwingMove move) {
-        float damage = (float) player.getAttributeValue(Attributes.ATTACK_DAMAGE) * move.damageMultiplier();
-        boolean crit = player.getRandom().nextFloat() < BASE_CRIT_CHANCE;
+        // Proficiency is 1.0 for a player; when the swing system accepts other wielders it scales what a mob gets
+        // out of a weapon built for a player (decision 0023) without touching the moveset or the effects.
+        float damage = (float) (player.getAttributeValue(Attributes.ATTACK_DAMAGE) * move.damageMultiplier()
+                * SbAttributes.proficiencyOf(player));
+        // Crit chance and multiplier are attributes (4% and 2x by default, decision 0016), so gear, the Lucky
+        // prefix and accessories are the only things that change them; the config scales the multiplier.
+        boolean crit = player.getRandom().nextDouble() < SbAttributes.valueOf(player, SbAttributes.CRIT_CHANCE);
         if (crit) {
-            damage *= CRIT_MULTIPLIER;
+            damage *= (float) (SbAttributes.valueOf(player, SbAttributes.CRIT_MULTIPLIER) * SbConfig.critDamageScalar());
         }
         DamageSource source = level.damageSources().playerAttack(player);
         if (target.hurtServer(level, source, damage)) {

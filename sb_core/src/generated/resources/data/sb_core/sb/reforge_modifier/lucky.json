@@ -1,0 +1,10 @@
+{
+  "rarity": "sb_core:rare",
+  "stats": [
+    {
+      "amount": 0.04,
+      "attribute": "sb_core:crit_chance",
+      "operation": "add_value"
+    }
+  ]
+}
