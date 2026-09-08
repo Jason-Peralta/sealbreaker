@@ -1,0 +1,94 @@
+{
+  "air": [
+    {
+      "active_ticks": 3,
+      "animation": "sb_combat:sword_plunge",
+      "arc_degrees": 50.0,
+      "damage_multiplier": 1.2,
+      "knockback": 0.6,
+      "landing_particles": 12,
+      "landing_spread": 0.5,
+      "reach": 3.2,
+      "recovery_ticks": 6,
+      "shape": "plunge",
+      "windup_ticks": 4
+    }
+  ],
+  "charge_curve": {
+    "exponent": 1.5,
+    "max": 2.0,
+    "min": 1.0
+  },
+  "charge_ticks": 24,
+  "combo_window_ticks": 12,
+  "hold": [
+    {
+      "active_ticks": 3,
+      "animation": "sb_combat:sword_heavy",
+      "arc_degrees": 50.0,
+      "damage_multiplier": 1.3,
+      "hitstop_ticks": 3,
+      "knockback": 0.7,
+      "reach": 3.2,
+      "recovery_ticks": 9,
+      "shape": "overhead",
+      "vertical_reach": 2.5,
+      "windup_ticks": 8
+    }
+  ],
+  "idle": "sb_combat:sword_idle",
+  "sprint": [
+    {
+      "active_ticks": 3,
+      "animation": "sb_combat:sword_lunge",
+      "arc_degrees": 130.0,
+      "damage_multiplier": 1.1,
+      "direction": "right_to_left",
+      "forward_impulse": 0.45,
+      "knockback": 0.5,
+      "reach": 3.5,
+      "recovery_ticks": 6,
+      "shape": "sweep",
+      "windup_ticks": 4
+    }
+  ],
+  "tap": [
+    {
+      "active_ticks": 2,
+      "animation": "sb_combat:sword_sweep_ltr",
+      "arc_degrees": 150.0,
+      "damage_multiplier": 0.7,
+      "direction": "left_to_right",
+      "knockback": 0.3,
+      "reach": 3.0,
+      "recovery_ticks": 4,
+      "shape": "sweep",
+      "windup_ticks": 5
+    },
+    {
+      "active_ticks": 2,
+      "animation": "sb_combat:sword_sweep_rtl",
+      "arc_degrees": 150.0,
+      "damage_multiplier": 0.7,
+      "direction": "right_to_left",
+      "knockback": 0.3,
+      "reach": 3.0,
+      "recovery_ticks": 4,
+      "shape": "sweep",
+      "windup_ticks": 5
+    },
+    {
+      "active_ticks": 3,
+      "animation": "sb_combat:sword_thrust",
+      "arc_degrees": 30.0,
+      "damage_multiplier": 1.4,
+      "hitstop_ticks": 3,
+      "knockback": 0.7,
+      "reach": 3.4,
+      "recovery_ticks": 7,
+      "shape": "thrust",
+      "vertical_reach": 1.5,
+      "windup_ticks": 8
+    }
+  ]
+}

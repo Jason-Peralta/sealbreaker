@@ -185,7 +185,9 @@ public final class SbCombatClient {
             return;
         }
         if (data.pose() != null) {
-            AnimationPoser.apply(model, data.pose(), state.mainArm, state.xRot, data.moveWeight());
+            // A downward cone is gravity-aligned; aiming must not tilt its third-person blade sideways.
+            float aimPitch = data.move() != null && data.move().shape() == SwingMove.Shape.PLUNGE ? 0 : state.xRot;
+            AnimationPoser.apply(model, data.pose(), state.mainArm, aimPitch, data.moveWeight());
         } else if (data.move() != null) {
             SwingAnimations.poseThirdPerson(model, state);
         }
@@ -233,8 +235,12 @@ public final class SbCombatClient {
         // hand really is and the blade arrives on the crosshair at contact.
         float contact = move.windupTicks() + move.activeTicks() * 0.5f;
         float ramp = Mth.clamp(data.elapsedTicks() / Math.max(1.0f, contact), 0.0f, 1.0f);
-        float centring = ramp * ramp * (3.0f - 2.0f * ramp) * data.moveWeight();
-        return new FirstPersonWeaponRenderer.Framing(animation, move, data.moveWeight(), aim, centring);
+        // Let the weapon return to its idle framing during recovery. Keeping the contact offset at
+        // the final idle keyframe leaves it above the screen, then snaps when the state disappears.
+        float recovery = Mth.clamp((move.totalTicks() - data.elapsedTicks()) / Math.max(1, move.recoveryTicks()), 0, 1);
+        float weight = data.moveWeight() * recovery * recovery * (3 - 2 * recovery);
+        float centring = ramp * ramp * (3.0f - 2.0f * ramp) * weight;
+        return new FirstPersonWeaponRenderer.Framing(animation, move, weight, aim, centring);
     }
 
     /** What to draw for an avatar this frame: its move, its idle stance, or the debugger's frozen frame; null for vanilla. */
@@ -246,7 +252,12 @@ public final class SbCombatClient {
                 return null;
             }
             PlayerAnimation idle = PlayerAnimations.get(AnimDebug.DEBUG_IDLE);
-            return new SwingRenderData(null, AnimDebug.overrideSeconds() * 20.0f,
+            WeaponArchetype debugArchetype = avatar.level().registryAccess().lookupOrThrow(SbRegistries.WEAPON_ARCHETYPE)
+                    .getOptional(Identifier.fromNamespaceAndPath(SbCombat.MOD_ID, "sword")).orElse(null);
+            SwingMove debugMove = debugArchetype == null ? null : java.util.Arrays.stream(dev.sealbreaker.core.api.combat.AttackContext.values())
+                    .flatMap(context -> debugArchetype.moves(context).stream())
+                    .filter(move -> move.animation().filter(AnimDebug.overrideAnimation()::equals).isPresent()).findFirst().orElse(null);
+            return new SwingRenderData(debugMove, AnimDebug.overrideSeconds() * 20.0f,
                     new PoseSource.AnimationAt(animation, AnimDebug.overrideSeconds()), idle == null ? PlayerAnimation.EMPTY : idle, 1.0f);
         }
         Identifier archetypeId = avatar.getMainHandItem().get(SbDataComponents.ARCHETYPE.get());
@@ -280,6 +291,19 @@ public final class SbCombatClient {
                 CameraFeel.setPose(pose);
             }
             return new SwingRenderData(chargingMove, chargeTime, pose, idle, progress, false);
+        }
+        if (swing != null && swing.archetype().equals(archetypeId)
+                && swing.context() == dev.sealbreaker.core.api.combat.AttackContext.AIR
+                && archetype.get().move(swing.context(), swing.step()).shape() == SwingMove.Shape.PLUNGE) {
+            SwingMove plunge = archetype.get().move(swing.context(), swing.step());
+            PlayerAnimation plungeAnimation = plunge.animation().map(PlayerAnimations::get).orElse(idle);
+            float at = swing.animationTicks(plunge, avatar.level().getGameTime(), partial);
+            PoseSource pose = new PoseSource.AnimationAt(plungeAnimation, at / 20);
+            if (avatar == minecraft.player) {
+                CameraFeel.setPose(pose);
+            }
+            return new SwingRenderData(plunge, at, pose, idle, 1,
+                    swing.landingTick() < 0 && at >= plunge.windupTicks());
         }
         if (swing != null && swing.archetype().equals(archetypeId)) {
             SwingMove candidate = archetype.get().move(swing.context(), swing.step());

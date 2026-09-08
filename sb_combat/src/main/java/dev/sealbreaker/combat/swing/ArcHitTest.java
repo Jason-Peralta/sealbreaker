@@ -25,7 +25,7 @@ public final class ArcHitTest {
 
     /** Every living, alive entity other than the attacker inside the move's hit region on this active tick. */
     public static List<LivingEntity> findTargets(Level level, Entity attacker, Vec3 origin, Vec3 look, SwingMove move, int activeIndex) {
-        if (horizontal(look) == null) {
+        if (move.shape() != SwingMove.Shape.PLUNGE && horizontal(look) == null) {
             return List.of();
         }
         double reach = move.reach();
@@ -46,6 +46,9 @@ public final class ArcHitTest {
      * follows its pitch, so a thrust aimed down at a target under the eye line reaches it.
      */
     public static boolean isInsideMoveAt(Vec3 origin, Vec3 look, LivingEntity target, SwingMove move, int activeIndex) {
+        if (move.shape() == SwingMove.Shape.PLUNGE) {
+            return isInsidePlunge(origin, target, move);
+        }
         Vec3 forward = horizontal(look);
         if (forward == null || !isWithinReach(origin, look, target, move)) {
             return false;
@@ -65,12 +68,26 @@ public final class ArcHitTest {
 
     /** Whether a target is anywhere inside the move's arc, ignoring sweep timing. */
     public static boolean isInsideArc(Vec3 origin, Vec3 look, LivingEntity target, SwingMove move) {
+        if (move.shape() == SwingMove.Shape.PLUNGE) {
+            return isInsidePlunge(origin, target, move);
+        }
         Vec3 forward = horizontal(look);
         if (forward == null || !isWithinReach(origin, look, target, move)) {
             return false;
         }
         double angle = signedAngleDegrees(origin, forward, target);
         return Math.abs(angle) <= move.arcDegrees() * 0.5 + halfWidthAllowance(target, origin);
+    }
+
+    /** A cone directed downward, independent of look yaw/pitch, with allowance for target size. */
+    private static boolean isInsidePlunge(Vec3 origin, LivingEntity target, SwingMove move) {
+        Vec3 centre = target.position().add(0, target.getBbHeight() * 0.5, 0);
+        double depth = origin.y - centre.y;
+        if (depth < 0 || depth > move.reach() + target.getBbHeight() * 0.5) {
+            return false;
+        }
+        double radius = depth * Math.tan(Math.toRadians(move.arcDegrees() * 0.5));
+        return Math.hypot(centre.x - origin.x, centre.z - origin.z) <= radius + target.getBbWidth() * 0.5;
     }
 
     /**

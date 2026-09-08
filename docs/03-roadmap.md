@@ -70,6 +70,8 @@ Total to v1.0 at twelve combined hours a week: roughly **three to three and a ha
 
 **Implementation progress (8 Sep 2026):**
 - [x] #15 input-context implementation: tick-based key edges; optional hold/air/sprint data; server validation and charge curve; context-aware synced poses; combo buffering and cancellation tests.
+- [x] #16 sword implementation: data-generated plunge/lunge/heavy moves, landing timeline and impact, one-shot lunge impulse, charged overhead animation; geometry/timing GameTests. Capture results are recorded in S1.
+- [ ] #16 human combat feel and dedicated-server acceptance; automation does not establish the blind playtest.
 - [ ] #15 AC-08 dedicated-server check: tap/hold/falling/sprint, weapons never mining and tools retaining vanilla behavior. Code and automated checks alone do not complete this acceptance step.
 
 **Effort split.** Developer A: combat core and player animation (the long pole), then boss framework. Developer B: core registries, gear, hub and NPC menu, structure, then the boss model and animations in Blockbench. Art budget: ~25% of both developers' time.

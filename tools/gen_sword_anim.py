@@ -160,6 +160,32 @@ THRUST = [
     (0.90, IDLE, IO_Q),
 ]
 
+# Context moves enter and recover to the same idle. Active windows match src/data/sword.json.
+PLUNGE_RAISED = pose(body=(-6, 0, 0), arm=(-155, 8, 0), item=(20, 25, 0),
+                    left_arm=(-105, -15, 0), right_leg=(-25, 0, 0), left_leg=(20, 0, 0))
+PLUNGE_DOWN = pose(body=(12, 0, 0), arm=(-35, 5, 0), item=(125, 20, -25),
+                  left_arm=(-35, -15, 0), right_leg=(-15, 0, 0), left_leg=(15, 0, 0),
+                  arm_pos=(0, 0, -2), camera=cam(1.3, 0, 0))
+PLUNGE_LAND = pose(body=(18, 0, 0), arm=(-25, 5, 0), item=(115, 20, -25),
+                  left_arm=(-25, -10, 0), right_leg=(-25, 0, 0), left_leg=(25, 0, 0),
+                  body_pos=(0, 1, 0), camera=cam(2, 0, 0))
+PLUNGE = [(0.00, IDLE, None), (0.10, PLUNGE_RAISED, OUT_Q), (0.20, PLUNGE_DOWN, IN_Q),
+          (0.30, PLUNGE_DOWN, LIN), (0.35, PLUNGE_LAND, OUT_Q), (0.65, IDLE, IO_Q)]
+LUNGE_CHAMBER = tweak(RAISE_R, body=(-4, 25, 0), right_leg=(-20, 0, 0), left_leg=(25, 0, 0))
+LUNGE_CONTACT = with_camera(tweak(CONTACT_RTL, body=(18, -15, 0), right_leg=(-30, 0, 0), left_leg=(30, 0, 0)), cam(1.5, 0, 0))
+LUNGE = [(0.00, IDLE, None), (0.12, LUNGE_CHAMBER, OUT_Q), (0.20, LUNGE_CONTACT, IN_Q),
+         (0.35, LOW_L, OUT_Q), (0.65, IDLE, IO_Q)]
+HEAVY_RAISED = pose(body=(-12, -8, 0), arm=(-160, 8, 0), item=(20, 30, 0),
+                    left_arm=(-90, -20, 0), right_leg=(12, 0, 0), left_leg=(-12, 0, 0),
+                    camera=cam(-1, 0, 0))
+HEAVY_CONTACT = pose(body=(20, 0, 0), arm=(-75, 5, 0), item=(70, 30, -25),
+                    left_arm=(-30, -10, 0), right_leg=(-15, 0, 0), left_leg=(15, 0, 0),
+                    arm_pos=(0, 0, -2), camera=cam(2.5, 0, 0))
+HEAVY_LOW = pose(body=(24, 0, 0), arm=(-15, 5, 0), item=(110, 30, -25),
+                left_arm=(10, -10, 0), right_leg=(-15, 0, 0), left_leg=(15, 0, 0), camera=cam(2, 0, 0))
+HEAVY = [(0.00, IDLE, None), (0.20, HEAVY_RAISED, OUT_Q), (0.35, HEAVY_RAISED, LIN),
+         (0.40, HEAVY_CONTACT, IN_Q), (0.55, HEAVY_LOW, OUT_Q), (0.80, RECOVER, IO_Q), (1.00, IDLE, IO_Q)]
+
 doc = OrderedDict([
     ("format_version", "1.8.0"),
     ("_notes", [
@@ -174,6 +200,9 @@ doc = OrderedDict([
         ("sword_sweep_ltr", animation(0.55, SWEEP_LTR)),
         ("sword_sweep_rtl", animation(0.55, SWEEP_RTL)),
         ("sword_thrust", animation(0.90, THRUST)),
+        ("sword_plunge", animation(0.65, PLUNGE)),
+        ("sword_lunge", animation(0.65, LUNGE)),
+        ("sword_heavy", animation(1.00, HEAVY)),
     ])),
 ])
 
